@@ -17,8 +17,10 @@ from threading import Timer
 app = Flask(__name__)
 
 # Meta Credentials
-ACCESS_TOKEN = "EAAHjsQJx72sBO9ZByRXWONteoZBSA1ZAGgAj0TB1xrY95P5LhZAVZAw6Q931i11tx61MeF1aETJn253ZBPuvWEhsif2hQUEAZC5ZBZBB4Uj7Nhf9gterpvSCAamY5J2DSK8ZC6k1ZCXMiMYejJaz6ZCSQr6N80fBsrb2GZBKMKrEHG04gGYy0CUyXuXzD"
-PHONE_NUMBER_ID = "625896810607603"
+ACCESS_TOKEN = "EAATaFWgHXb0BO8ucf8KUDZBZAM1GDHvoWisAup5FcFGa7RBxVTzr4itefw03XBOdZBBDfJHpl3VgnB7M0dmbGCJaokzRQnbDBftkIUTuyb5TQfIuwF726GMgRaLeSUfpi8i5s0zy3Q6FTlTqc3qqoxozGq7GxSkh1B8fweFFTuj5ZABFZClK0ztf6ZCqm9FH9Vo1l4x1KaDZBitZBWmZA3XHkhS9sjHWqnz4lMAsZD"
+
+PHONE_NUMBER_ID = "648035701730540"
+VERIFY_TOKEN = "pine_eat123"
 WHATSAPP_API_URL = f"https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages"
 
 # Google Maps API
@@ -57,35 +59,47 @@ if not os.path.exists(OFF_HOUR_USERS_CSV):
 BRANCHES = {
     "Kondapur": (17.47019976442252, 78.35272372527311),
     "Madhapur": (17.452121157758043, 78.39433952527278),
-    "Manikonda": (17.403904212354316, 78.39079508109451)
+    "Manikonda": (17.403904212354316, 78.39079508109451),
+    "Nizampet": (17.502920525682562, 78.38792555189266),
+    "Nanakramguda": (17.428344716608002, 78.33321245767164)
 }
 
 BRANCH_LINKS = {
     "Kondapur": "https://maps.app.goo.gl/E26sm634cKJmxktH6",
     "Madhapur": "https://maps.app.goo.gl/x5AHBgoh3gMbhUobA",
-    "Manikonda": "https://maps.app.goo.gl/FkCU71kfvKY2vrgw9"
+    "Manikonda": "https://maps.app.goo.gl/FkCU71kfvKY2vrgw9",
+    "Nizampet": "https://maps.app.goo.gl/4sfipqkgwdjHLFDe6",
+    "Nanakramguda": "https://maps.app.goo.gl/tQrS9Bpg524kpXadA"
 }
 BRANCH_DISCOUNTS = {
     "kondapur": 0,
     "madhapur": 0,
-    "manikonda": 0
+    "manikonda": 0,
+    "nizampet": 0,
+    "nanakramguda": 0
 }
 
 
 BRANCH_CONTACTS = {
     "Kondapur": "918885112242",
     "Madhapur": "917075442898",
-    "Manikonda": "919441112671"
+    "Manikonda": "919441112671",
+    "Nizampet": "6303241076",
+    "Nanakramguda": "6303237242"
 }
 BRANCH_STATUS = {
     "kondapur": True,
     "madhapur": True,
-    "manikonda": True
+    "manikonda": True,
+    "nizampet": True,
+    "nanakramguda": True
 }
 BRANCH_BLOCKED_USERS = {
     "kondapur": set(),
     "madhapur": set(),
-    "manikonda": set()
+    "manikonda": set(),
+    "nizampet": set(),
+    "nanakramguda": set()
 }
 RAZORPAY_KEY_ID = "rzp_live_jtGMQ5k5QGHxFg"
 RAZORPAY_KEY_SECRET = "FEMHAO4zeUFnAiKZPLe44NRN"
@@ -941,7 +955,7 @@ def handle_location(sender, latitude, longitude):
     user_coords = (float(latitude), float(longitude))
     print(f"📍 Location received: {user_coords}")
 
-    for branch, coords in BRANCHES.items():
+    for branch, coords in BRANCHES.items():    
         distance_km = geodesic(user_coords, coords).km
         if distance_km <= 2:
             branch_key = branch.lower()
@@ -1077,7 +1091,7 @@ def webhook():
                 		action, branch_name = parts
                 		branch_key = branch_name.strip().lower()
                 		if branch_key not in BRANCH_STATUS:
-                			send_text_message(sender, f"⚠️ Unknown branch: {branch_name}. Valid options: kondapur, madhapur, manikonda")
+                			send_text_message(sender, f"⚠️ Unknown branch: {branch_name}. Valid options: kondapur, madhapur, manikonda, nizampet, nanakramguda")
                 			return "OK", 200
                 		if action == "open":
                 			BRANCH_STATUS[branch_key] = True
@@ -1385,7 +1399,7 @@ def verify():
     mode = request.args.get("hub.mode")
     token = request.args.get("hub.verify_token")
     challenge = request.args.get("hub.challenge")
-    if mode == "subscribe" and token == "fruitcustard123":
+    if mode == "subscribe" and token == "ping_eat123":
         return challenge, 200
     return "Verification failed", 403
 def start_scheduler():
@@ -1404,5 +1418,3 @@ if __name__ == "__main__":
     start_scheduler()
     
     app.run(host="0.0.0.0", port=10000)
-
-

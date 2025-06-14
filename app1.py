@@ -1,3 +1,5 @@
+# app.py/main file
+
 import json
 import re
 import os
@@ -17,10 +19,11 @@ from threading import Timer
 app = Flask(__name__)
 
 # Meta Credentials
-ACCESS_TOKEN = "EAATaFWgHXb0BO8ucf8KUDZBZAM1GDHvoWisAup5FcFGa7RBxVTzr4itefw03XBOdZBBDfJHpl3VgnB7M0dmbGCJaokzRQnbDBftkIUTuyb5TQfIuwF726GMgRaLeSUfpi8i5s0zy3Q6FTlTqc3qqoxozGq7GxSkh1B8fweFFTuj5ZABFZClK0ztf6ZCqm9FH9Vo1l4x1KaDZBitZBWmZA3XHkhS9sjHWqnz4lMAsZD"
+ACCESS_TOKEN = "EAATaFWgHXb0BOZBJO7N1yqUcZCbkNdLtNrsen9W1EGRZBdaGlI9ZCjTmzmbGboWyBso86lQCcM06jZCLrjsr2nYN4FklLBwxZCZAE8MPAWzZAHy8otsepDv0YLnZBs8WepCgiASJJpaqx8LqPst143ItpqXdq2SsUKyZBgBvylaJQR3bzQbrJ05ZA2nTXtPF0cpcrkXa1SryA3ELP3vCPvyaOOgEaGtDhrDRx7P670ZD"
+# ACCESS_TOKEN = "EAATaFWgHXb0BO8ucf8KUDZBZAM1GDHvoWisAup5FcFGa7RBxVTzr4itefw03XBOdZBBDfJHpl3VgnB7M0dmbGCJaokzRQnbDBftkIUTuyb5TQfIuwF726GMgRaLeSUfpi8i5s0zy3Q6FTlTqc3qqoxozGq7GxSkh1B8fweFFTuj5ZABFZClK0ztf6ZCqm9FH9Vo1l4x1KaDZBitZBWmZA3XHkhS9sjHWqnz4lMAsZD"
 
 PHONE_NUMBER_ID = "648035701730540"
-VERIFY_TOKEN = "pine_eat123"
+VERIFY_TOKEN = "ping_eat123"
 WHATSAPP_API_URL = f"https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages"
 
 # Google Maps API
@@ -305,8 +308,8 @@ def store_off_hour_user(phone_number):
         writer.writerow([phone_number, str(date.today())])
 import requests
 
-ACCESS_TOKEN = "EAAHjsQJx72sBO9ZByRXWONteoZBSA1ZAGgAj0TB1xrY95P5LhZAVZAw6Q931i11tx61MeF1aETJn253ZBPuvWEhsif2hQUEAZC5ZBZBB4Uj7Nhf9gterpvSCAamY5J2DSK8ZC6k1ZCXMiMYejJaz6ZCSQr6N80fBsrb2GZBKMKrEHG04gGYy0CUyXuXzD"
-PHONE_NUMBER_ID = "625896810607603"
+# ACCESS_TOKEN = "EAAHjsQJx72sBO9ZByRXWONteoZBSA1ZAGgAj0TB1xrY95P5LhZAVZAw6Q931i11tx61MeF1aETJn253ZBPuvWEhsif2hQUEAZC5ZBZBB4Uj7Nhf9gterpvSCAamY5J2DSK8ZC6k1ZCXMiMYejJaz6ZCSQr6N80fBsrb2GZBKMKrEHG04gGYy0CUyXuXzD"
+# PHONE_NUMBER_ID = "625896810607603"
 
 def send_pay_online_template(phone_number, payment_link):
     """
@@ -1058,6 +1061,7 @@ def webhook():
     ORDERS_CSV = "orders.csv"  # Ensure this exists or is created by order logger
 
     data = request.get_json()
+    print("[MESSAGE HANDLER] Received data:", data)
     try:
         for entry in data.get("entry", []):
             for change in entry.get("changes", []):

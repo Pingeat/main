@@ -2,6 +2,9 @@
 
 from flask import Blueprint, request, jsonify
 from handlers.message_handlers import handle_incoming_message
+# from services.order_service import update_order_status
+from services.whatsapp_service import send_text_message
+from config.credentials import META_VERIFY_TOKEN
 
 webhook_bp = Blueprint('webhook', __name__)
 
@@ -19,9 +22,30 @@ def verify_webhook():
     hub_token = request.args.get("hub.verify_token")
     hub_challenge = request.args.get("hub.challenge")
 
-    if hub_mode == "subscribe" and hub_token == "pine_eat123":
+    if hub_mode == "subscribe" and hub_token == META_VERIFY_TOKEN :
         print("[WEBHOOK] Verification successful.")
         return hub_challenge, 200
     else:
         print("[WEBHOOK] Verification failed.")
         return "Verification failed", 403
+
+# ✅ Add these for payment handling
+@webhook_bp.route("/payment-success", methods=["GET"])
+def payment_success():
+    from services.order_service import confirm_order
+    whatsapp_number = request.args.get("whatsapp")
+    order_id = request.args.get("order_id")
+    if whatsapp_number and order_id:
+        confirm_order(whatsapp_number, "Online", order_id, paid=True)
+    return "Payment confirmed", 200
+
+@webhook_bp.route("/razorpay-webhook", methods=["POST"])
+def razorpay_webhook():
+    data = request.get_json()
+    if data.get("event") == "payment_link.paid":
+        payment_data = data.get("payload", {}).get("payment_link", {}).get("entity", {})
+        whatsapp_number = payment_data.get("customer", {}).get("contact")
+        order_id = payment_data.get("reference_id")
+        if whatsapp_number and order_id:
+            send_text_message(whatsapp_number, "✅ Your payment is confirmed! Your order is being processed.")
+    return "OK", 200

@@ -19,11 +19,11 @@ from threading import Timer
 app = Flask(__name__)
 
 # Meta Credentials
-ACCESS_TOKEN = "EAATaFWgHXb0BOZBJO7N1yqUcZCbkNdLtNrsen9W1EGRZBdaGlI9ZCjTmzmbGboWyBso86lQCcM06jZCLrjsr2nYN4FklLBwxZCZAE8MPAWzZAHy8otsepDv0YLnZBs8WepCgiASJJpaqx8LqPst143ItpqXdq2SsUKyZBgBvylaJQR3bzQbrJ05ZA2nTXtPF0cpcrkXa1SryA3ELP3vCPvyaOOgEaGtDhrDRx7P670ZD"
+ACCESS_TOKEN = "EAAXmE6N0zpwBO0mYKVDf6oqMLyvcJHAlJlMkIIqSZAv7DkQYp7d6OqD55NVIIsk5goL8qcAIHuhsHA483ZAhgJ9tbe8FRIRZBovG82gjn5HGUcPRLlkxFyA6wJNOHoAZCYos1SJH432H92FFm1eF0UhXv5JbejQUQxdxSxdZCh82K0hjTUFHhyDIbcQni"
 # ACCESS_TOKEN = "EAATaFWgHXb0BO8ucf8KUDZBZAM1GDHvoWisAup5FcFGa7RBxVTzr4itefw03XBOdZBBDfJHpl3VgnB7M0dmbGCJaokzRQnbDBftkIUTuyb5TQfIuwF726GMgRaLeSUfpi8i5s0zy3Q6FTlTqc3qqoxozGq7GxSkh1B8fweFFTuj5ZABFZClK0ztf6ZCqm9FH9Vo1l4x1KaDZBitZBWmZA3XHkhS9sjHWqnz4lMAsZD"
 
-PHONE_NUMBER_ID = "648035701730540"
-VERIFY_TOKEN = "ping_eat123"
+PHONE_NUMBER_ID = "700017766525097"
+VERIFY_TOKEN = "Pingeat@123"
 WHATSAPP_API_URL = f"https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages"
 
 # Google Maps API
@@ -1220,6 +1220,7 @@ def webhook():
                 # Handle typed address if waiting for location
                 if user_states.get(sender, {}).get("step") == "awaiting_location" and text:
                     try:
+                        print("[LOCATION]:", text)
                         geocode = gmaps.geocode(text)
                         if geocode:
                             location = geocode[0]["geometry"]["location"]

@@ -28,20 +28,20 @@ def send_cart_reminder_once():
     # Implement cart cleanup and reminders here
 
 def confirm_order(to, branch, order_id, payment_mode, user_cart,paid=False):
-
+    print("HIIIIIIIIIIIIIIIIIII")
     cart = user_cart.get(to, {})
     summary = cart.get("summary", "")
     total = cart.get("total", 0)
 
-    branch_key = branch.lower()
+    # branch_key = branch.lower()
       # Load branches from JSON
-    branches_path = Path(__file__).parent.parent.parent / "data" / "branches.json"
-    try:
-        with open(branches_path, "r") as f:
-            branches_data = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"[ERROR] Failed to load branches.json: {e}")
-        branches_data = {}
+    branches_data = json.loads((Path(__file__).parent.parent / "data" / "branches.json").read_text())
+    # try:
+    #     with open(branches_path, "r") as f:
+    #         branches_data = json.load(f)
+    # except (FileNotFoundError, json.JSONDecodeError) as e:
+    #     print(f"[ERROR] Failed to load branches.json: {e}")
+    #     branches_data = {}
 
     # Get contact
     getContact = branches_data.get(branch, {}).get("contact", "")
@@ -57,6 +57,7 @@ def confirm_order(to, branch, order_id, payment_mode, user_cart,paid=False):
     customer_number = to
 
     status_line = "✅ Payment received." if paid else "💵 Payment Mode: Cash on Delivery"
+    print(branches_data)
 
      # ✅ Sanitize summary and address
     item_summary_clean = summary.replace("\n", " | ").replace("\t", " ").replace("  ", " ").replace("*", "").strip()[:250]

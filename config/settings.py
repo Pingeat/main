@@ -15,3 +15,13 @@ import json
 
 # Load products from JSON file
 CART_PRODUCTS = json.loads((Path(__file__).parent.parent / "data" / "products.json").read_text())
+
+
+
+BRANCH_DISCOUNTS = {
+    "kondapur": 0,
+    "madhapur": 0,
+    "manikonda": 0,
+    "nizampet": 0,
+    "nanakramguda": 0
+}

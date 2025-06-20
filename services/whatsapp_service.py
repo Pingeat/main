@@ -126,7 +126,7 @@ def send_full_catalog(to):
             },
             "action": {
                 "name": "catalog_message",
-                "catalog_id": "1050974620414013"  
+                "catalog_id": "1008650128092617"  
             },
         }
     }
@@ -136,7 +136,7 @@ def send_full_catalog(to):
     }
 
     response = requests.post(WHATSAPP_API_URL, json=payload, headers=headers)
-    print(f"[WHATSAPP] Full catalog sent. Status: {response.status_code}")
+    print(f"[WHATSAPP] Full catalog sent. Status: {response}")
 
 
 def send_kitchen_branch_alert_template(phone_number, order_type, order_id, customer, order_time, item_summary, total, branch, address, location_url): 

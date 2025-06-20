@@ -12,7 +12,7 @@ from services.order_service import confirm_order, generate_order_id
 from utils.logger import log_user_activity
 from utils.location_utils import get_branch_from_location
 from utils.payment_utils import generate_payment_link  # ✅ Import here
-from config.settings import CART_PRODUCTS  # ✅ Make sure CART_PRODUCTS is imported
+from config.settings import (CART_PRODUCTS, BRANCH_DISCOUNTS)  # ✅ Make sure CART_PRODUCTS is imported
 
 user_cart = {}
 user_states = {}
@@ -34,8 +34,8 @@ def handle_incoming_message(data):
                 if message_type == "text":
                     text = msg.get("text", {}).get("body", "").strip().lower()
                     if text in ["hi", "hello", "hey"]:
-                        # send_greeting_template(sender)
-                        send_text_message(sender, "HIII, RAA NANA KANNA")
+                        send_greeting_template(sender)
+                        # send_text_message(sender, "HIII, RAA NANA KANNA")
                     log_user_activity(sender, "message_received", text)
                 elif message_type == "button":
                     button_text = msg.get("button", {}).get("text", "").strip().lower()
@@ -126,6 +126,23 @@ def handle_incoming_message(data):
                     elif button_text == "pay now":
                         user_states[sender] = {"step": "awaiting_address", "action": "pay now"}
                         send_text_message(sender, "Please enter your full delivery address:")
+                    elif "discount" in text:
+                        parts = text.split()
+                        if len(parts) == 3:
+                            branch_name, keyword, value = parts
+                            branch_key = branch_name.strip().lower()
+                            if branch_key in BRANCH_DISCOUNTS and keyword == "discount":
+                                try:
+                                    BRANCH_DISCOUNTS[branch_key] = int(value)
+                                    send_text_message(sender, f"✅ Discount for *{branch_name.title()}* branch set to {value}%.")
+                                except:
+                                    send_text_message(sender, "❗ Invalid discount value. Use a number.")
+                                else:
+                                    send_text_message(sender, "❗ Unknown branch or format.")
+                        else:
+                            send_text_message(sender, "❗ Use format: `kondapur discount 10` or `madhapur discount 0`")
+                            return "OK", 200
+
 
     except Exception as e:
         print("[ERROR] Message handler error:", e)

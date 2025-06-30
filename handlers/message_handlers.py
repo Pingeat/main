@@ -291,15 +291,28 @@ def handle_incoming_message(data):
                         send_payment_option_template(sender)
                     elif button_text == "takeaway":
                         # retrieve branch from states or cart
+                        print["TAKEAWAY"]
                         branch = user_states.get(sender, {}).get("branch") or user_cart.get(sender, {}).get("branch")
+                        order_id = user_cart[sender].get("order_id")
+                        if not order_id:
+                            order_id = generate_order_id()
+                            user_cart[sender]["order_id"] = order_id
+                            cart = user_cart.get(sender, {})
+                            summary = cart.get("summary", "No items found.")
+                            total = cart.get("total", 0)
+                        user_cart[sender]["branch"] = branch
+                        user_cart[sender]["address"] = "Takeaway"
                         confirm_order(sender, branch, user_cart[sender]["order_id"], "Takeaway", user_cart[sender], paid=False)
                         user_states[sender] = {"step": "order_confirmed"}
                         return "OK", 200
                     elif button_text == "pay now":
-                        user_states[sender] = {"step": "awaiting_address", "action": "pay now"}
+                        branch = user_states.get(sender, {}).get("branch") or user_cart.get(sender, {}).get("branch")
+                        user_states[sender] = {"step": "awaiting_address", "action": "pay now","branch": branch}
                         send_text_message(sender, "Please enter your full delivery address:")
                     elif button_text == "cod":
-                        user_states[sender] = {"step": "awaiting_address", "action": "COD"}
+                        print("[PRINTING USER:] ", user_states[sender])
+                        branch = user_states.get(sender, {}).get("branch") or user_cart.get(sender, {}).get("branch")
+                        user_states[sender] = {"step": "awaiting_address", "action": "COD", "branch": branch}
                         send_text_message(sender, "Please enter your full delivery address:")
 
                 # HANDLE ADDRESS FOR PAYMENT OR COD
@@ -309,11 +322,11 @@ def handle_incoming_message(data):
                     cart = user_cart.get(sender, {})
                     action = state.get("action")
                     branch = state.get("branch") or cart.get("branch")
-                    print("[BRANCH]:", branch)
+                    print("[BRANCH]:", state)
                     order_id = cart.get("order_id") or generate_order_id()
                     total = cart.get("total", 0)
                     cart["address"] = address
-
+                    print("[BRANCH]",cart)
                     if action == "COD":
                         confirm_order(sender, branch, order_id, "COD", cart, paid=False)
                     elif action == "pay now":

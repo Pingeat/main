@@ -25,3 +25,18 @@ BRANCH_DISCOUNTS = {
     "nizampet": 0,
     "nanakramguda": 0
 }
+
+BRANCH_STATUS = {
+    "kondapur": True,
+    "madhapur": True,
+    "manikonda": True,
+    "nizampet": True,
+    "nanakramguda": True
+}
+BRANCH_BLOCKED_USERS = {
+    "kondapur": set(),
+    "madhapur": set(),
+    "manikonda": set(),
+    "nizampet": set(),
+    "nanakramguda": set()
+}

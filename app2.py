@@ -1,5 +1,3 @@
-# app.py/main file
-
 import json
 import re
 import os
@@ -20,10 +18,7 @@ app = Flask(__name__)
 
 # Meta Credentials
 ACCESS_TOKEN = "EAAXmE6N0zpwBO0mYKVDf6oqMLyvcJHAlJlMkIIqSZAv7DkQYp7d6OqD55NVIIsk5goL8qcAIHuhsHA483ZAhgJ9tbe8FRIRZBovG82gjn5HGUcPRLlkxFyA6wJNOHoAZCYos1SJH432H92FFm1eF0UhXv5JbejQUQxdxSxdZCh82K0hjTUFHhyDIbcQni"
-# ACCESS_TOKEN = "EAATaFWgHXb0BO8ucf8KUDZBZAM1GDHvoWisAup5FcFGa7RBxVTzr4itefw03XBOdZBBDfJHpl3VgnB7M0dmbGCJaokzRQnbDBftkIUTuyb5TQfIuwF726GMgRaLeSUfpi8i5s0zy3Q6FTlTqc3qqoxozGq7GxSkh1B8fweFFTuj5ZABFZClK0ztf6ZCqm9FH9Vo1l4x1KaDZBitZBWmZA3XHkhS9sjHWqnz4lMAsZD"
-
 PHONE_NUMBER_ID = "700017766525097"
-VERIFY_TOKEN = "Pingeat@123"
 WHATSAPP_API_URL = f"https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages"
 
 # Google Maps API
@@ -63,32 +58,33 @@ BRANCHES = {
     "Kondapur": (17.47019976442252, 78.35272372527311),
     "Madhapur": (17.452121157758043, 78.39433952527278),
     "Manikonda": (17.403904212354316, 78.39079508109451),
-    "Nizampet": (17.502920525682562, 78.38792555189266),
-    "Nanakramguda": (17.428344716608002, 78.33321245767164)
+    "Nizampet": (17.5027248365148, 78.38801004183912),
+    "Nanakramguda": (17.428017460769013, 78.33318580040985)
 }
 
 BRANCH_LINKS = {
     "Kondapur": "https://maps.app.goo.gl/E26sm634cKJmxktH6",
     "Madhapur": "https://maps.app.goo.gl/x5AHBgoh3gMbhUobA",
     "Manikonda": "https://maps.app.goo.gl/FkCU71kfvKY2vrgw9",
-    "Nizampet": "https://maps.app.goo.gl/4sfipqkgwdjHLFDe6",
-    "Nanakramguda": "https://maps.app.goo.gl/tQrS9Bpg524kpXadA"
+    "Nizampet": "https://maps.app.goo.gl/u2nK4CQsQLTqPXRm8",
+    "Nanakramguda": "https://maps.app.goo.gl/E7zmZ38L9PtC98g76"
 }
 BRANCH_DISCOUNTS = {
     "kondapur": 0,
     "madhapur": 0,
     "manikonda": 0,
-    "nizampet": 0,
-    "nanakramguda": 0
+    "nizampet":0,
+    "nanakramguda":0
 }
 
 
 BRANCH_CONTACTS = {
-    "Kondapur": "918885112242",
+    "Kondapur": "916302588275",
     "Madhapur": "917075442898",
-    "Manikonda": "919441112671",
-    "Nizampet": "6303241076",
-    "Nanakramguda": "6303237242"
+    "Manikonda": "919392016847",
+    "Nizampet": "916303241076",
+    "Nanakramguda": "916303237242"
+
 }
 BRANCH_STATUS = {
     "kondapur": True,
@@ -285,7 +281,7 @@ user_cart = {}
 user_feedback_state = {}
 user_states = {}
 
-KITCHEN_NUMBERS = ["917671011599"]
+KITCHEN_NUMBERS = ["918074301029"]
 def generate_order_id():
     return f"ORD-{uuid.uuid4().hex[:6].upper()}"
 # Send a regular text message
@@ -308,8 +304,6 @@ def store_off_hour_user(phone_number):
         writer.writerow([phone_number, str(date.today())])
 import requests
 
-# ACCESS_TOKEN = "EAAHjsQJx72sBO9ZByRXWONteoZBSA1ZAGgAj0TB1xrY95P5LhZAVZAw6Q931i11tx61MeF1aETJn253ZBPuvWEhsif2hQUEAZC5ZBZBB4Uj7Nhf9gterpvSCAamY5J2DSK8ZC6k1ZCXMiMYejJaz6ZCSQr6N80fBsrb2GZBKMKrEHG04gGYy0CUyXuXzD"
-# PHONE_NUMBER_ID = "625896810607603"
 
 def send_pay_online_template(phone_number, payment_link):
     """
@@ -524,7 +518,8 @@ def send_kitchen_branch_alert_template(
             ]
         }
     }
-    print("[PARAMETERS ] :",payload)
+    
+    print("[KITCHEN_PARAMETERS] : ",payload)
 
     headers = {
         "Authorization": f"Bearer {ACCESS_TOKEN}",
@@ -799,17 +794,18 @@ def update_order_status(order_id, new_status):
 
     return found
 def confirm_order(to, branch, order_id, payment_mode, paid=False):
+    print("[INSIDE CONFIRM ORDER]: 1")
     cart = user_cart.get(to, {})
     summary = cart.get("summary", "No items found.")
     total = cart.get("total", 0)
-
+    print("[INSIDE CONFIRM ORDER]: 2")
     # ✅ Discount logic
     branch_key = branch.lower()
     discount_percent = BRANCH_DISCOUNTS.get(branch_key, 0)
     discount_amount = (total * discount_percent) // 100
     final_total = total - discount_amount
     user_cart[to]["final_total"] = final_total  # Store for Razorpay use
-
+    print("[INSIDE CONFIRM ORDER]: 3")
     # ✅ Add discount info to summary
     if discount_percent > 0:
         summary += f"\n\n💸 *{discount_percent}% Discount Applied*: -₹{discount_amount}"
@@ -825,7 +821,7 @@ def confirm_order(to, branch, order_id, payment_mode, paid=False):
     customer_number = to
 
     status_line = "✅ Payment received." if paid else "💵 Payment Mode: Cash on Delivery"
-
+    print("[INSIDE CONFIRM ORDER]: 4")
     # ✅ Sanitize summary and address
     item_summary_clean = summary.replace("\n", " | ").replace("\t", " ").replace("  ", " ").replace("*", "").strip()[:250]
     address_clean = address.replace("\n", " ").replace("\t", " ").replace("  ", " ").strip()[:250]
@@ -873,7 +869,7 @@ def confirm_order(to, branch, order_id, payment_mode, paid=False):
         address=address_clean,
         location_url=customer_location_link
     )
-
+    print("[INSIDE CONFIRM ORDER]: 5")
     # ✅ Alert to kitchen team(s)
     for kitchen in KITCHEN_NUMBERS:
         send_kitchen_branch_alert_template(
@@ -888,6 +884,7 @@ def confirm_order(to, branch, order_id, payment_mode, paid=False):
             address=address_clean,
             location_url=customer_location_link
         )
+        print("[INSIDE CONFIRM ORDER]: 6")
 
     user_cart[to]["reminder_sent"] = True
     log_user_activity(to, "order confirmed")
@@ -959,7 +956,7 @@ def handle_location(sender, latitude, longitude):
     user_coords = (float(latitude), float(longitude))
     print(f"📍 Location received: {user_coords}")
 
-    for branch, coords in BRANCHES.items():    
+    for branch, coords in BRANCHES.items():
         distance_km = geodesic(user_coords, coords).km
         if distance_km <= 2:
             branch_key = branch.lower()
@@ -1062,7 +1059,6 @@ def webhook():
     ORDERS_CSV = "orders.csv"  # Ensure this exists or is created by order logger
 
     data = request.get_json()
-    print("[MESSAGE HANDLER] Received data:", data)
     try:
         for entry in data.get("entry", []):
             for change in entry.get("changes", []):
@@ -1221,7 +1217,6 @@ def webhook():
                 # Handle typed address if waiting for location
                 if user_states.get(sender, {}).get("step") == "awaiting_location" and text:
                     try:
-                        print("[LOCATION]:", text)
                         geocode = gmaps.geocode(text)
                         if geocode:
                             location = geocode[0]["geometry"]["location"]
@@ -1254,7 +1249,8 @@ def webhook():
                         user_cart[sender]["order_id"] = order_id
                     user_cart[sender]["address"] = address
 
-                    if action == "cod (cash on delivery)":
+                    if action == "cod":
+                        print("[SENDING TO CONFIRM ORDER]: 1")
                         confirm_order(sender, branch, order_id, payment_mode="COD", paid=False)
                     elif action == "pay now":
                         total = user_cart[sender].get("total", 0)
@@ -1322,7 +1318,8 @@ def webhook():
                     send_payment_option_template(sender)
                     return "OK", 200
 
-                elif button_text in ["cod (cash on delivery)", "pay now"]:
+                elif button_text in ["cod", "pay now"]:
+                    print("[INSIDE COD]: 1")
                     user_states[sender] = {
                         "step": "awaiting_address",
                         "action": button_text
@@ -1405,7 +1402,7 @@ def verify():
     mode = request.args.get("hub.mode")
     token = request.args.get("hub.verify_token")
     challenge = request.args.get("hub.challenge")
-    if mode == "subscribe" and token == "ping_eat123":
+    if mode == "subscribe" and token == "Pingeat@123":
         return challenge, 200
     return "Verification failed", 403
 def start_scheduler():
@@ -1424,3 +1421,5 @@ if __name__ == "__main__":
     start_scheduler()
     
     app.run(host="0.0.0.0", port=10000)
+
+

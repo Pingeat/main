@@ -187,6 +187,7 @@
 
 
 from config.credentials import GOOGLE_MAPS_API_KEY
+from handlers.discount_handler import get_branch_discount
 from services.whatsapp_service import (
     send_text_message, send_greeting_template,
     send_delivery_takeaway_template,
@@ -199,7 +200,7 @@ from services.order_service import confirm_order, generate_order_id
 from utils.logger import log_user_activity
 from utils.location_utils import get_branch_from_location
 from utils.payment_utils import generate_payment_link
-from config.settings import CART_PRODUCTS, BRANCH_DISCOUNTS
+from config.settings import BRANCH_BLOCKED_USERS, BRANCH_STATUS, CART_PRODUCTS, BRANCH_DISCOUNTS
 
 user_cart = {}
 user_states = {}
@@ -222,9 +223,57 @@ def handle_incoming_message(data):
                 # INITIAL GREETING AND LOGGING
                 if message_type == "text":
                     text = msg.get("text", {}).get("body", "").strip().lower()
-                    if text in ["hi", "hello", "hey"]:
+                    if text in ["hi", "hello", "hey", "menu"]:
                         send_greeting_template(sender)
                     log_user_activity(sender, "message_received", text)
+                    # ✅ Handle open/close branch command
+                    if any(text.startswith(cmd) for cmd in ["open", "close"]):
+                        print("[ENTERED_OPEN?CLOSE] :", text)
+                        parts = text.split()
+                        print("[ENTERED_OPEN?CLOSE_PARTS] :", parts)
+                        if len(parts) == 2:
+                            action, branch_name = parts
+                            branch_key = branch_name.strip().lower()
+                            print("[ENTERED_OPEN?CLOSE_PARTS] :", branch_name)
+                            print("[ENTERED_OPEN?ACTION] :", action)
+                            # Check valid branch
+                            if branch_key not in BRANCH_STATUS:
+                                print("[ENTERED] :")
+                                send_text_message(sender, f"⚠️ Unknown branch: {branch_name}. Valid options: {', '.join(BRANCH_STATUS.keys())}")
+                                return "OK", 200
+                            
+                            # Handle open action
+                            if action == "open":
+                                BRANCH_STATUS[branch_key] = True
+                                send_text_message(sender, f"✅ Branch *{branch_name.title()}* is now *open* for delivery.")
+                                for user in BRANCH_BLOCKED_USERS.get(branch_key, []):
+                                    send_text_message(user, f"📣 Our *{branch_name.title()}* branch is now open! You can place your order again. 🎉")
+                                    BRANCH_BLOCKED_USERS[branch_key].clear()
+
+                            # Handle close action
+                            elif action == "close":
+                                BRANCH_STATUS[branch_key] = False
+                                print("[BRANCH_STATUS] :",BRANCH_STATUS[branch_key])
+                                send_text_message(sender, f"🚫 Branch *{branch_name.title()}* is now *closed* for delivery.")
+                                return "OK", 200
+                        else:
+                            send_text_message(sender, "❗ To open/close a branch, use:\n`open madhapur`\n`close kondapur`")
+                            return "OK", 200
+
+                    if "discount" in text:
+                        print("[DISCOUNT BLOCK ENTERED]:")
+                        parts = text.split()
+                        if len(parts) == 3:
+                            branch_name, keyword, value = parts
+                            branch_key = branch_name.strip().lower()
+                            if branch_key in BRANCH_DISCOUNTS and keyword == "discount":
+                                try:
+                                    BRANCH_DISCOUNTS[branch_key] = int(value)
+                                    send_text_message(sender, f"✅ Discount for *{branch_name.title()}* branch set to {value}%.")
+                                except:
+                                    send_text_message(sender, "❗ Invalid discount value. Use a number.")
+                            else:
+                                send_text_message(sender, "❗ Unknown branch or format.")
 
                 # BUTTON CLICKED
                 elif message_type == "button":
@@ -235,11 +284,19 @@ def handle_incoming_message(data):
                 elif message_type == "location":
                     latitude = msg.get("location", {}).get("latitude")
                     longitude = msg.get("location", {}).get("longitude")
-                    branch = get_branch_from_location(latitude, longitude)
+                    branch = get_branch_from_location(latitude, longitude).lower()
+                    # ✅ Check if branch is closed
+                    if not BRANCH_STATUS.get(branch, True):
+                        send_text_message(sender, f"⚠️ Our *{branch}* branch is currently closed. We’ll notify you when it reopens.")
+                        BRANCH_BLOCKED_USERS[branch].add(sender)
+                        log_user_activity(sender, f"branch_closed_attempt: {branch}")
+                        return
                     if branch:
                         # Store branch in both state and cart
                         user_states[sender] = {"step": "catalog_shown", "branch": branch}
                         user_cart.setdefault(sender, {})["branch"] = branch
+                        user_cart[sender]["latitude"] = latitude
+                        user_cart[sender]["longitude"] = longitude
                         send_text_message(sender, f"We can deliver from {branch} branch!")
                         send_delivery_takeaway_template(sender)
                     else:
@@ -270,12 +327,7 @@ def handle_incoming_message(data):
 
                     # apply discount if branch known
                     state = user_states.get(sender, {})
-                    if "branch" in state:
-                        br = state["branch"].lower()
-                        disc = BRANCH_DISCOUNTS.get(br, 0)
-                        if disc > 0:
-                            send_text_message(sender, f"🎉 Congratulations! You've unlocked a {disc}% discount.")
-
+                    print("[USER_STATES_IS_PRINTING]",user_cart)
                     send_text_message(sender, "📍 Please share your current location to check delivery availability.")
                     user_states[sender] = {"step": "awaiting_location"}
                     return "OK", 200
@@ -291,7 +343,6 @@ def handle_incoming_message(data):
                         send_payment_option_template(sender)
                     elif button_text == "takeaway":
                         # retrieve branch from states or cart
-                        print["TAKEAWAY"]
                         branch = user_states.get(sender, {}).get("branch") or user_cart.get(sender, {}).get("branch")
                         order_id = user_cart[sender].get("order_id")
                         if not order_id:
@@ -302,7 +353,8 @@ def handle_incoming_message(data):
                             total = cart.get("total", 0)
                         user_cart[sender]["branch"] = branch
                         user_cart[sender]["address"] = "Takeaway"
-                        confirm_order(sender, branch, user_cart[sender]["order_id"], "Takeaway", user_cart[sender], paid=False)
+                        discount = get_branch_discount(sender,branch, user_cart)
+                        confirm_order(sender, branch, user_cart[sender]["order_id"], "Takeaway", user_cart[sender], discount, paid=False)
                         user_states[sender] = {"step": "order_confirmed"}
                         return "OK", 200
                     elif button_text == "pay now":
@@ -328,7 +380,8 @@ def handle_incoming_message(data):
                     cart["address"] = address
                     print("[BRANCH]",cart)
                     if action == "COD":
-                        confirm_order(sender, branch, order_id, "COD", cart, paid=False)
+                        discount = get_branch_discount(sender,branch, user_cart)
+                        confirm_order(sender, branch, order_id, "COD", cart, discount, paid=False)
                     elif action == "pay now":
                         link = generate_payment_link(sender, total, order_id)
                         if link:
@@ -340,7 +393,6 @@ def handle_incoming_message(data):
                     user_states[sender] = {"step": "start"}
                     return "OK", 200
                 elif message_type == "text" and step == "awaiting_location" and text :
-                    print("[LOCATION_HANDLER]: HII ADVITHA")
                     geocode = gmaps.geocode(text)
                     if geocode:
                         location = geocode[0]["geometry"]["location"]
@@ -348,10 +400,24 @@ def handle_incoming_message(data):
                         longitude = location["lng"]
                         print(f"📍 Address '{text}' resolved to: ({latitude}, {longitude})")
                     latitude = location["lat"]
-                    branch = get_branch_from_location(latitude,longitude)
+                    user_cart[sender]["latitude"] = latitude
+                    user_cart[sender]["longitude"] = longitude
+                    print("[LOCATION RELATED TESTING]:", user_cart)
+                    branch = get_branch_from_location(latitude,longitude).lower()
+                    # ✅ Check if branch is closed
+                    if not BRANCH_STATUS.get(branch,True):
+                        send_text_message(sender, f"⚠️ Our *{branch}* branch is currently closed. We’ll notify you when it reopens.")
+                        BRANCH_BLOCKED_USERS[branch].add(sender)
+                        log_user_activity(sender, f"branch_closed_attempt: {branch}")
+                        return
                     if branch:
                         send_text_message(sender, f"We can deliver from {branch} branch!")
                         user_states[sender] = {"step": "catalog_shown", "branch": branch}
+                        branch = branch.lower()
+                        discount = BRANCH_DISCOUNTS.get(branch, 0)
+                        print("[DISCOUNT_BRANCH _RELATED] :", discount)
+                        if discount > 0:
+                            send_text_message(sender, f"🎉 Congratulations! You've unlocked a {discount}% discount.")
                         send_delivery_takeaway_template(sender)
                     else:
                         send_text_message(sender, "Sorry, we don't deliver to your area.")

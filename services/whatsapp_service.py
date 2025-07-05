@@ -145,34 +145,32 @@ def send_kitchen_branch_alert_template(phone_number, order_type, order_id, custo
         "to": phone_number,
         "type": "template",
         "template": {
-            "name": "kitchen_branch_alert",  # Make sure this matches your Meta template name
-            "language": {
-                "code": "en_US"
-            },
+            "name": "kitchen_branch_alert",
+            "language": { "code": "en_US" },
             "components": [
                 {
                     "type": "body",
                     "parameters": [
-                        {"type": "text", "text": order_type},
-                        {"type": "text", "text": order_id},
-                        {"type": "text", "text": customer},
-                        {"type": "text", "text": order_time},
-                        {"type": "text", "text": item_summary},
-                        {"type": "text", "text": str(total)},
-                        {"type": "text", "text": branch},
-                        {"type": "text", "text": address},
-                        {"type": "text", "text": location_url}
+                        { "type": "text", "text": order_type },
+                        { "type": "text", "text": order_id },
+                        { "type": "text", "text": customer },
+                        { "type": "text", "text": order_time },
+                        { "type": "text", "text": item_summary},
+                        { "type": "text", "text": str(total) },
+                        { "type": "text", "text": branch },
+                        { "type": "text", "text": address },
+                        { "type": "text", "text": location_url }
                     ]
                 }
             ]
         }
     }
-    
+    print("[KITCHEN_PARAMETERS] : ",payload)
+
     headers = {
         "Authorization": f"Bearer {META_ACCESS_TOKEN}",
         "Content-Type": "application/json"
     }
-    
+
     response = requests.post(WHATSAPP_API_URL, json=payload, headers=headers)
-    print(f"[WHATSAPP] Kitchen alert sent to {phone_number}. Status: {response.status_code}")
-    return response
+    print("📤 Sent kitchen/branch alert:", response.status_code, response.text)

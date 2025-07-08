@@ -196,6 +196,9 @@ from services.whatsapp_service import (
     send_full_catalog
 )
 import googlemaps
+import os
+import csv
+from apscheduler.schedulers.background import BackgroundScheduler
 from services.order_service import confirm_order, generate_order_id
 from utils.logger import log_user_activity
 from utils.location_utils import get_branch_from_location
@@ -205,6 +208,14 @@ from config.settings import BRANCH_BLOCKED_USERS, BRANCH_STATUS, CART_PRODUCTS, 
 user_cart = {}
 user_states = {}
 gmaps = googlemaps.Client(GOOGLE_MAPS_API_KEY)
+ORDERS_CSV = "orders.csv"
+if not os.path.exists(ORDERS_CSV):
+    with open(ORDERS_CSV, mode="w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow([
+            "Order ID", "Customer Number", "Order Time", "Branch", "Address", "Latitude", "Longitude",
+            "Summary", "Total", "Payment Mode", "Paid", "Status"
+        ])
 
 
 def handle_incoming_message(data):
@@ -227,7 +238,16 @@ def handle_incoming_message(data):
                         send_greeting_template(sender)
                     log_user_activity(sender, "message_received", text)
                     # ✅ Handle open/close branch command
+                    ADMIN_NUMBERS = ['918074301029','916281880981']
+
+                    def is_admin(sender):
+                        return sender in ADMIN_NUMBERS
+                    
                     if any(text.startswith(cmd) for cmd in ["open", "close"]):
+                        if not is_admin(sender):
+                            send_text_message(sender, "Hi There! This information is only available to our admin team at the moment. Let us know if there's anything else we can help you with! ")
+                            return "OK", 200
+                        
                         print("[ENTERED_OPEN?CLOSE] :", text)
                         parts = text.split()
                         print("[ENTERED_OPEN?CLOSE_PARTS] :", parts)
@@ -261,6 +281,10 @@ def handle_incoming_message(data):
                             return "OK", 200
 
                     if "discount" in text:
+                        if not is_admin(sender):
+                            send_text_message(sender, "Hi There! This information is only available to our admin team at the moment. Let us know if there's anything else we can help you with!")
+                            return "OK", 200
+                        
                         print("[DISCOUNT BLOCK ENTERED]:")
                         parts = text.split()
                         if len(parts) == 3:
@@ -275,6 +299,55 @@ def handle_incoming_message(data):
                             else:
                                 send_text_message(sender, "❗ Unknown branch or format.")
 
+                    # ✅ STATUS UPDATE
+                    status_keywords = ["ready", "preparing", "ontheway", "delivered", "cancelled"]
+                    if any(text.startswith(k) for k in status_keywords):
+                        if not is_admin(sender):
+                            send_text_message(sender, "Hi there! This information is currently reserved for our admin team. We're happy to assist you with anything else you need!")
+                            return "OK", 200
+
+                        parts = text.split()
+                        if len(parts) == 2:
+                            new_status, order_id = parts
+                            order_id = order_id.strip().upper()
+                            new_status_clean = new_status.strip().capitalize()
+                            if new_status_clean.lower() == "ontheway":
+                                new_status_clean = "On the Way"
+
+                            updated = False
+                            updated_rows = []
+
+                            with open(ORDERS_CSV, "r", newline='', encoding="utf-8") as infile:
+                                reader = csv.DictReader(infile)
+                                for row in reader:
+                                    if row["Order ID"].strip().upper() == order_id:
+                                        row["Status"] = new_status
+                                        updated = True
+
+                                        customer_number = row["Customer Number"].strip()
+                                        if customer_number:
+                                            send_text_message(customer_number, f"📦 Your order *{order_id}* is now *{new_status_clean}*.")
+                                            # if new_status_clean.lower() == "delivered":
+                                            #     schedule_feedback(customer_number)
+
+                                    updated_rows.append(row)
+
+                            if updated:
+                                with open(ORDERS_CSV, "w", newline='', encoding="utf-8") as outfile:
+                                    fieldnames = list(updated_rows[0].keys())
+                                    writer = csv.DictWriter(outfile, fieldnames=fieldnames)
+                                    writer.writeheader()
+                                    for row in updated_rows:
+                                        clean_row = {key: row.get(key, "") for key in fieldnames}
+                                        writer.writerow(clean_row)
+
+                                send_text_message(sender, f"✅ Order *{order_id}* marked as *{new_status_clean}*.")
+                            else:
+                                send_text_message(sender, f"⚠️ Order ID *{order_id}* not found.")
+                        else:
+                            send_text_message(sender, "❗ To update order status, use:\nready ORD-XXXXXX")
+                        return "OK", 200
+                    
                 # BUTTON CLICKED
                 elif message_type == "button":
                     button_text = msg.get("button", {}).get("text", "").strip().lower()

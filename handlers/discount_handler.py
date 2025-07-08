@@ -1,19 +1,26 @@
+# discount_handler.py
 from config.settings import BRANCH_DISCOUNTS
 
-
-def get_branch_discount(to,branch, user_cart):
-    cart = user_cart[to]
-    print("[PINTING_CART] : ", cart)
-    total = cart.get("total", 0)
+def get_branch_discount(to, branch, get_user_cart_func):
+    """
+    Calculates discount based on branch and cart total.
     
-    # ✅ Discount logic
+    Args:
+        to: WhatsApp number of user
+        branch: Branch name
+        get_user_cart_func: Function to retrieve user cart from Redis
+    
+    Returns:
+        dict: Discount info including percent, amount, and final total
+    """
+    cart = get_user_cart_func(to)  # Call the function to get cart
+    total = cart.get("total", 0)
     branch_key = branch.lower()
     discount_percent = BRANCH_DISCOUNTS.get(branch_key, 0)
-    print("[discount_percent] :", discount_percent)
+
     discount_amount = (total * discount_percent) // 100
-    print("[discount_amount] :", discount_amount)
     final_total = total - discount_amount
-    print("[final_total]:", final_total)
+
     return {
         "discount_percent": discount_percent,
         "discount_amount": discount_amount,

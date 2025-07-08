@@ -9,6 +9,7 @@ from pathlib import Path
 from pytz import timezone
 from config.settings import BRANCH_DISCOUNTS, ORDERS_CSV, KITCHEN_NUMBERS
 from services.whatsapp_service import send_text_message,  send_kitchen_branch_alert_template
+from stateHandlers.redis_state import delete_user_cart, get_user_cart
 
 def log_order_to_csv(order_data):
     print("[ORDER SERVICE] Logging order...")
@@ -84,11 +85,14 @@ def send_cart_reminder_once():
 
 def confirm_order(to, branch, order_id, payment_mode, user_cart, discount, paid=False):
     print("HIIIIIIIIIIIIIIIIIII")
-    cart = user_cart
+    # cart = user_cart
+    cart = get_user_cart(to)
     summary = cart.get("summary", "")
     total = cart.get("total", 0)
+    
 
-      # Load branches from JSON
+
+    # Load branches from JSON
     branches_data = json.loads((Path(__file__).parent.parent / "data" / "branches.json").read_text())
     discount_percent = discount.get("discount_percent",0)
     discount_amount = discount.get("discount_amount",0)
@@ -147,6 +151,8 @@ def confirm_order(to, branch, order_id, payment_mode, user_cart, discount, paid=
     
     # Send confirmation
     send_text_message(to, f"Order confirmed! {customer_msg}")
+    delete_user_cart(to)
+    print("[DELETE] : DELETION SUCCESSFULL" )
     
     # Alert kitchen
     for kitchen in KITCHEN_NUMBERS:
@@ -162,7 +168,7 @@ def confirm_order(to, branch, order_id, payment_mode, user_cart, discount, paid=
             location_url=customer_location_link,
             order_time = order_time
         )
-    user_cart[to]["reminder_sent"] = True
+    # user_cart[to]["reminder_sent"] = True
 
 def generate_order_id():
     return f"ORD-{uuid.uuid4().hex[:6].upper()}"

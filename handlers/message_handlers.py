@@ -451,6 +451,7 @@ from services.order_service import confirm_order, generate_order_id
 from utils.logger import log_user_activity
 from utils.location_utils import get_branch_from_location
 from utils.payment_utils import generate_payment_link
+from utils.admin_access import check_admin_access
 from config.settings import BRANCH_BLOCKED_USERS, BRANCH_STATUS, CART_PRODUCTS, BRANCH_DISCOUNTS
 from stateHandlers.redis_state import get_user_cart, set_user_cart, delete_user_cart, get_all_carts
 
@@ -501,25 +502,17 @@ def handle_incoming_message(data):
                             user_states[sender] = {"step": "start"}
                         return
                     log_user_activity(sender, "message_received", text)
-                    # ✅ Handle open/close branch command
-                    ADMIN_NUMBERS = ['918074301029','916281880981']
-
-                    def is_admin(sender):
-                        return sender in ADMIN_NUMBERS
-                    
                     if any(text.startswith(cmd) for cmd in ["open", "close"]):
-                        if not is_admin(sender):
-                            send_text_message(sender, "Hi There! This information is only available to our admin team at the moment. Let us know if there's anything else we can help you with! ")
+                        is_allowed, deny_message = check_admin_access(sender)
+                        if not is_allowed:
+                            send_text_message(sender, deny_message)
                             return "OK", 200
-                        
-                        print("[ENTERED_OPEN?CLOSE] :", text)
+
+                        print("[ENTERED_OPEN/CLOSE] :", text)
                         parts = text.split()
-                        print("[ENTERED_OPEN?CLOSE_PARTS] :", parts)
                         if len(parts) == 2:
                             action, branch_name = parts
                             branch_key = branch_name.strip().lower()
-                            print("[ENTERED_OPEN?CLOSE_PARTS] :", branch_name)
-                            print("[ENTERED_OPEN?ACTION] :", action)
 
                             if branch_key not in BRANCH_STATUS:
                                 send_text_message(sender, f"⚠️ Unknown branch: {branch_name}. Valid options: {', '.join(BRANCH_STATUS.keys())}")
@@ -530,7 +523,7 @@ def handle_incoming_message(data):
                                 send_text_message(sender, f"✅ Branch *{branch_name.title()}* is now *open* for delivery.")
                                 for user in BRANCH_BLOCKED_USERS.get(branch_key, []):
                                     send_text_message(user, f"📣 Our *{branch_name.title()}* branch is now open! You can place your order again. 🎉")
-                                    BRANCH_BLOCKED_USERS[branch_key].clear()
+                                BRANCH_BLOCKED_USERS[branch_key].clear()
 
                             elif action == "close":
                                 BRANCH_STATUS[branch_key] = False
@@ -540,11 +533,13 @@ def handle_incoming_message(data):
                             send_text_message(sender, "❗ To open/close a branch, use:\n`open madhapur`\n`close kondapur`")
                             return "OK", 200
 
+                    # ✅ DISCOUNT command
                     if "discount" in text:
-                        if not is_admin(sender):
-                            send_text_message(sender, "Hi There! This information is only available to our admin team at the moment. Let us know if there's anything else we can help you with!")
+                        is_allowed, deny_message = check_admin_access(sender)
+                        if not is_allowed:
+                            send_text_message(sender, deny_message)
                             return "OK", 200
-                        
+
                         print("[DISCOUNT BLOCK ENTERED]:")
                         parts = text.split()
                         if len(parts) == 3:
@@ -558,19 +553,16 @@ def handle_incoming_message(data):
                                     send_text_message(sender, "❗ Invalid discount value. Use a number.")
                             else:
                                 send_text_message(sender, "❗ Unknown branch or format.")
-                                
-                    # HANDLE POST-ORDER CHOICE
+
+                    # ✅ POST-ORDER CHOICE
                     if current_state == "post_order_choice":
                         response = msg.get("text", {}).get("body", "").strip().lower()
                         if response in ["1", "1.", "new order", "place order"]:
-                            # Start fresh ordering process
                             send_greeting_template(sender)
                             user_states[sender] = {"step": "start"}
-                            set_user_cart(sender, {})  # Clear cart
+                            set_user_cart(sender, {})
                         elif response in ["2", "2.", "check order", "status"]:
-                            # Placeholder for future order status check
                             send_text_message(sender, "🔍 Let me check your order status...")
-                            # TODO: Fetch latest order from CSV or DB and respond accordingly
                             user_states[sender] = {"step": "checking_order_status"}
                         else:
                             send_text_message(sender, "❗ Please reply with:\n1 for New Order\n2 for Order Status")
@@ -579,8 +571,9 @@ def handle_incoming_message(data):
                     # ✅ STATUS UPDATE
                     status_keywords = ["ready", "preparing", "ontheway", "delivered", "cancelled"]
                     if any(text.startswith(k) for k in status_keywords):
-                        if not is_admin(sender):
-                            send_text_message(sender, "Hi there! This information is currently reserved for our admin team. We're happy to assist you with anything else you need!")
+                        is_allowed, deny_message = check_admin_access(sender)
+                        if not is_allowed:
+                            send_text_message(sender, deny_message)
                             return "OK", 200
 
                         parts = text.split()
@@ -624,6 +617,9 @@ def handle_incoming_message(data):
                         else:
                             send_text_message(sender, "❗ To update order status, use:\nready ORD-XXXXXX")
                         return "OK", 200
+
+
+                    
                     
                 # BUTTON CLICKED
                 elif message_type == "button":

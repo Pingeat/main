@@ -9,7 +9,7 @@ from pathlib import Path
 from pytz import timezone
 from config.settings import BRANCH_DISCOUNTS, ORDERS_CSV, KITCHEN_NUMBERS
 from services.whatsapp_service import send_text_message,  send_kitchen_branch_alert_template
-from stateHandlers.redis_state import delete_user_cart, get_user_cart
+from stateHandlers.redis_state import add_pending_order, delete_user_cart, get_user_cart, set_user_state
 
 def log_order_to_csv(order_data):
     print("[ORDER SERVICE] Logging order...")
@@ -82,53 +82,49 @@ def send_cart_reminder_once():
 
     # for phone in to_delete:
     #     del user_cart[phone]
+    
 
+# Confirm Order
 def confirm_order(to, branch, order_id, payment_mode, user_cart, discount, paid=False):
-    print("HIIIIIIIIIIIIIIIIIII")
-    # cart = user_cart
+    print("[CONFIRM_ORDER] Confirming new order:", order_id)
+    
     cart = get_user_cart(to)
     summary = cart.get("summary", "")
     total = cart.get("total", 0)
-    
 
-
-    # Load branches from JSON
+    # Load branches data
     branches_data = json.loads((Path(__file__).parent.parent / "data" / "branches.json").read_text())
-    discount_percent = discount.get("discount_percent",0)
-    discount_amount = discount.get("discount_amount",0)
-    final_total = discount.get("final_total",0)
-    # ✅ Add discount info to summary
+    contact = branches_data.get(branch, {}).get("contact", "")
+
+    # Build final summary with discount
+    discount_percent = discount.get("discount_percent", 0)
+    discount_amount = discount.get("discount_amount", 0)
+    final_total = discount.get("final_total", total)
+
     if discount_percent > 0:
         summary += f"\n\n💸 *{discount_percent}% Discount Applied*: -₹{discount_amount}"
     summary += f"\n💰 *Total Payable*: ₹{final_total}"
-    
-    # Get contact
-    getContact = branches_data.get(branch, {}).get("contact", "")
-    print("[CART] : ",cart)
-    address = cart.get("address", "N/A")
+
+    # Get address and location
+    address = cart.get("address", "Takeaway" if payment_mode == "Takeaway" else "N/A")
     latitude = cart.get("latitude", "")
     longitude = cart.get("longitude", "")
-    contact = getContact
     branch_location_link = branches_data.get(branch, {}).get("map_link", "")
-    print(f"[BRANCH_LOCATION]: {branch_location_link}")
     customer_location_link = f"https://www.google.com/maps?q={latitude},{longitude}" if latitude and longitude else "N/A"
-    order_time = get_current_ist_time()
-    customer_number = to
-
     status_line = "✅ Payment received." if paid else "💵 Payment Mode: Cash on Delivery"
-    print(branches_data)
+    order_time = get_current_ist_time()
 
-     # ✅ Sanitize summary and address
-    item_summary_clean = summary.replace("\n", " | ").replace("\t", " ").replace("  ", " ").replace("*", "").strip()[:250]
-    address_clean = address.replace("\n", " ").replace("\t", " ").replace("  ", " ").strip()[:250]
-    
+    # Sanitize strings for WhatsApp
+    item_summary_clean = summary.replace("\n", " | ").replace("*", "").strip()[:250]
+    address_clean = address.replace("\n", " ").strip()[:250]
+
     # Log to CSV
     log_order_to_csv({
         "Order ID": order_id,
         "Customer Number": to,
         "Order Time": get_current_ist_time(),
         "Branch": branch,
-        "Address": "Takeaway" if payment_mode == "Takeaway" else "Pending",
+        "Address": address_clean,
         "Summary": summary,
         "Total": total,
         "Payment Mode": payment_mode,
@@ -136,6 +132,22 @@ def confirm_order(to, branch, order_id, payment_mode, user_cart, discount, paid=
         "Status": "Pending"
     })
 
+    # Save order in Redis
+    add_pending_order(order_id, {
+        "customer": to,
+        "branch": branch,
+        "order_id": order_id,
+        "payment_mode": payment_mode,
+        "summary": summary,
+        "total": total,
+        "address": address_clean,
+        "location_url": customer_location_link,
+        "order_time": get_current_ist_time(),
+        "status": "Pending",
+        "reminders_sent": 0
+    })
+    
+    
     # ✅ Message to customer
     customer_msg = (
         f"🧾 *Order Confirmed!*\n"
@@ -151,10 +163,7 @@ def confirm_order(to, branch, order_id, payment_mode, user_cart, discount, paid=
     
     # Send confirmation
     send_text_message(to, f"Order confirmed! {customer_msg}")
-    delete_user_cart(to)
-    print("[DELETE] : DELETION SUCCESSFULL" )
-    
-    # Alert kitchen
+    # Alert kitchen(s)
     for kitchen in KITCHEN_NUMBERS:
         send_kitchen_branch_alert_template(
             phone_number=kitchen,
@@ -166,9 +175,12 @@ def confirm_order(to, branch, order_id, payment_mode, user_cart, discount, paid=
             branch=branch,
             address=address_clean,
             location_url=customer_location_link,
-            order_time = order_time
+            order_time=get_current_ist_time()
         )
-    # user_cart[to]["reminder_sent"] = True
+
+    # Delete cart and set state
+    delete_user_cart(to)
+    set_user_state(to, {"step": "order_confirmed"})
 
 def generate_order_id():
     return f"ORD-{uuid.uuid4().hex[:6].upper()}"

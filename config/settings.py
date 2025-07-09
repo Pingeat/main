@@ -40,3 +40,7 @@ BRANCH_BLOCKED_USERS = {
     "nizampet": set(),
     "nanakramguda": set()
 }
+
+
+
+ADMIN_NUMBERS = ["918074301029"]

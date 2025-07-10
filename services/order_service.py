@@ -20,34 +20,6 @@ def log_order_to_csv(order_data):
             writer.writeheader()
         writer.writerow(order_data)
 
-# def send_open_reminders():
-#     print("[REMINDER] Sending morning open alerts...")
-#     # Implement daily open alerts here
-#     """Send morning open alerts to users who tried ordering during closed hours."""
-#     print("[REMINDER] Sending morning open alerts...")
-
-#     today = str(datetime.now(timezone('Asia/Kolkata')).date())
-#     new_rows = []
-
-#     if not os.path.exists(OFF_HOUR_USERS_CSV):
-#         return
-
-#     with open(OFF_HOUR_USERS_CSV, newline='') as f:
-#         reader = csv.DictReader(f)
-#         for row in reader:
-#             if row["Date"] == today:
-#                 phone = row["Phone Number"]
-#                 send_text_message(phone, "🌞 Good morning! We’re now open and ready to take your orders.")
-#             else:
-#                 new_rows.append(row)
-
-#     with open(OFF_HOUR_USERS_CSV, "w", newline='') as f:
-#         writer = csv.DictWriter(f, fieldnames=["Phone Number", "Date"])
-#         writer.writeheader()
-#         writer.writerows(new_rows)
-
-# scheduler/background_jobs.py
-
 def send_open_reminders():
     """Send opening reminders to users who messaged during off-hours"""
     ist = timezone('Asia/Kolkata')
@@ -67,46 +39,6 @@ def send_open_reminders():
 
     # Clear yesterday's data
     delete_yesterdays_data(yesterday)
-
-# def send_cart_reminder_once():
-#     print("[REMINDER] Sending cart reminders...")
-#     # Implement cart cleanup and reminders here
-#     """Send cart reminders and clean up old carts."""
-#     print("[REMINDER] Sending cart reminders and cleaning up old carts...")
-
-#     ist = timezone('Asia/Kolkata')
-#     now = datetime.now(ist)
-
-#     to_delete = []
-
-#     for phone, cart in list(user_cart.items()):
-#         last_time_raw = cart.get("last_interaction_time")
-#         reminder_sent = cart.get("reminder_sent", False)
-#         address = cart.get("address")
-
-#         if last_time_raw:
-#             try:
-#                 if isinstance(last_time_raw, datetime):
-#                     last_time = last_time_raw
-#                 else:
-#                     last_time = datetime.strptime(last_time_raw, "%Y-%m-%d %H:%M:%S")
-#                     last_time = ist.localize(last_time)
-#             except Exception as e:
-#                 print("⚠️ Error parsing last interaction time:", e)
-#                 continue
-
-#             if now - last_time > timedelta(days=1):
-#                 print(f"🗑️ Deleting abandoned cart for {phone}")
-#                 to_delete.append(phone)
-#             elif now - last_time > timedelta(minutes=5) and cart.get("summary") and not address and not reminder_sent:
-#                 send_text_message(phone, "🛒 Just a reminder! You still have items in your cart. Complete your order with delivery or takeaway.")
-#                 user_cart[phone]["reminder_sent"] = True
-
-#     for phone in to_delete:
-#         del user_cart[phone]
-
-
-# handlers/cart_handler.py
 
 def update_cart_interaction(phone):
     """Update cart timestamp"""

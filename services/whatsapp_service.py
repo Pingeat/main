@@ -218,3 +218,22 @@ def send_kitchen_branch_alert_template(phone_number, order_type, order_id, custo
 
     response = requests.post(WHATSAPP_API_URL, json=payload, headers=headers)
     print("📤 Sent kitchen/branch alert:", response.status_code, response.text)
+
+def send_feedback_template(to):
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": to,
+        "type": "template",
+        "template": {
+            "name": "feedback_2",  # your actual template name
+            "language": { "code": "en_US" }
+        }
+    }
+
+    headers = {
+        "Authorization": f"Bearer {META_ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    response = requests.post(WHATSAPP_API_URL, json=payload, headers=headers)
+    print("📤 Sent feedback quick reply template:", response.status_code, response.text)

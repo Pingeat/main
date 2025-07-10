@@ -1,6 +1,7 @@
 import csv
 from config.credentials import GOOGLE_MAPS_API_KEY
 from handlers.discount_handler import get_branch_discount
+from handlers.feedback_handler import save_feedback, schedule_feedback
 from services.whatsapp_service import (
     send_text_message, send_greeting_template,
     send_delivery_takeaway_template,
@@ -19,6 +20,7 @@ from stateHandlers.redis_state import add_pending_order, get_active_orders, get_
 from handlers.randomMessage_handler import matching
 
 gmaps = googlemaps.Client(GOOGLE_MAPS_API_KEY)
+quick_reply_ratings = {"5- outstanding": "5", "4- excellent": "4", "3 – good": "3", "2 – average": "2", "1 – poor": "1"}
 
 
 
@@ -277,6 +279,12 @@ def handle_button_click(sender, button_text):
         branch = state.get("branch") or cart.get("branch")
         set_user_state(sender, {"step": "awaiting_address", "action": button_text.upper(), "branch": branch})
         send_text_message(sender, "Please enter your full delivery address:")
+    elif button_text in quick_reply_ratings:
+        rating_value = quick_reply_ratings[button_text]
+        save_feedback(sender, rating_value)
+        send_text_message(sender, "🙏 Thank you for your feedback!")
+        delete_user_state(sender)
+        return "OK", 200
 
 #Handle Address Input
 def handle_address_input(sender, address):
@@ -390,6 +398,7 @@ def handle_update_order_status(sender, text):
     
     # ✅ If delivered, reset user and delete order
     if new_status_clean == "Delivered":
+        schedule_feedback(customer_number)
         maybe_reset_user_after_delivery(customer_number, order_id)
         
     # Notify admin
@@ -434,13 +443,3 @@ def maybe_reset_user_after_delivery(customer_number, order_id):
 def is_admin(phone):
     # Replace with actual list of admin numbers
     return phone in ADMIN_NUMBERS
-
-# def get_active_orders(customer_number):
-#     active_orders = []
-#     with open(ORDERS_CSV, "r", newline='', encoding="utf-8") as infile:
-#         reader = csv.DictReader(infile)
-#         for row in reader:
-#             if row["Customer Number"].strip() == customer_number:
-#                 if row["Status"] not in ["Delivered", "Cancelled"]:
-#                     active_orders.append(row)
-#     return active_orders

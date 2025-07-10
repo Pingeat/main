@@ -4,12 +4,12 @@ import os
 import csv
 import uuid
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from pytz import timezone
 from config.settings import BRANCH_DISCOUNTS, ORDERS_CSV, KITCHEN_NUMBERS
 from services.whatsapp_service import send_text_message,  send_kitchen_branch_alert_template
-from stateHandlers.redis_state import add_pending_order, delete_user_cart, get_user_cart, set_user_state
+from stateHandlers.redis_state import add_pending_order, delete_user_cart, delete_yesterdays_data, get_off_hour_users, get_user_cart, set_user_cart, set_user_state
 
 def log_order_to_csv(order_data):
     print("[ORDER SERVICE] Logging order...")
@@ -20,69 +20,130 @@ def log_order_to_csv(order_data):
             writer.writeheader()
         writer.writerow(order_data)
 
+# def send_open_reminders():
+#     print("[REMINDER] Sending morning open alerts...")
+#     # Implement daily open alerts here
+#     """Send morning open alerts to users who tried ordering during closed hours."""
+#     print("[REMINDER] Sending morning open alerts...")
+
+#     today = str(datetime.now(timezone('Asia/Kolkata')).date())
+#     new_rows = []
+
+#     if not os.path.exists(OFF_HOUR_USERS_CSV):
+#         return
+
+#     with open(OFF_HOUR_USERS_CSV, newline='') as f:
+#         reader = csv.DictReader(f)
+#         for row in reader:
+#             if row["Date"] == today:
+#                 phone = row["Phone Number"]
+#                 send_text_message(phone, "🌞 Good morning! We’re now open and ready to take your orders.")
+#             else:
+#                 new_rows.append(row)
+
+#     with open(OFF_HOUR_USERS_CSV, "w", newline='') as f:
+#         writer = csv.DictWriter(f, fieldnames=["Phone Number", "Date"])
+#         writer.writeheader()
+#         writer.writerows(new_rows)
+
+# scheduler/background_jobs.py
+
 def send_open_reminders():
-    print("[REMINDER] Sending morning open alerts...")
-    # # Implement daily open alerts here
-    # """Send morning open alerts to users who tried ordering during closed hours."""
-    # print("[REMINDER] Sending morning open alerts...")
-
-    # today = str(datetime.now(timezone('Asia/Kolkata')).date())
-    # new_rows = []
-
-    # if not os.path.exists(OFF_HOUR_USERS_CSV):
-    #     return
-
-    # with open(OFF_HOUR_USERS_CSV, newline='') as f:
-    #     reader = csv.DictReader(f)
-    #     for row in reader:
-    #         if row["Date"] == today:
-    #             phone = row["Phone Number"]
-    #             send_text_message(phone, "🌞 Good morning! We’re now open and ready to take your orders.")
-    #         else:
-    #             new_rows.append(row)
-
-    # with open(OFF_HOUR_USERS_CSV, "w", newline='') as f:
-    #     writer = csv.DictWriter(f, fieldnames=["Phone Number", "Date"])
-    #     writer.writeheader()
-    #     writer.writerows(new_rows)
-
-def send_cart_reminder_once():
-    print("[REMINDER] Sending cart reminders...")
-    # # Implement cart cleanup and reminders here
-    # """Send cart reminders and clean up old carts."""
-    # print("[REMINDER] Sending cart reminders and cleaning up old carts...")
-
-    # ist = timezone('Asia/Kolkata')
-    # now = datetime.now(ist)
-
-    # to_delete = []
-
-    # for phone, cart in list(user_cart.items()):
-    #     last_time_raw = cart.get("last_interaction_time")
-    #     reminder_sent = cart.get("reminder_sent", False)
-    #     address = cart.get("address")
-
-    #     if last_time_raw:
-    #         try:
-    #             if isinstance(last_time_raw, datetime):
-    #                 last_time = last_time_raw
-    #             else:
-    #                 last_time = datetime.strptime(last_time_raw, "%Y-%m-%d %H:%M:%S")
-    #                 last_time = ist.localize(last_time)
-    #         except Exception as e:
-    #             print("⚠️ Error parsing last interaction time:", e)
-    #             continue
-
-    #         if now - last_time > timedelta(days=1):
-    #             print(f"🗑️ Deleting abandoned cart for {phone}")
-    #             to_delete.append(phone)
-    #         elif now - last_time > timedelta(minutes=5) and cart.get("summary") and not address and not reminder_sent:
-    #             send_text_message(phone, "🛒 Just a reminder! You still have items in your cart. Complete your order with delivery or takeaway.")
-    #             user_cart[phone]["reminder_sent"] = True
-
-    # for phone in to_delete:
-    #     del user_cart[phone]
+    """Send opening reminders to users who messaged during off-hours"""
+    ist = timezone('Asia/Kolkata')
+    today = datetime.now(ist).date().isoformat()
     
+    # Get users who messaged yesterday or today
+    yesterday = (datetime.now(ist) - timedelta(days=1)).date().isoformat()
+    
+    for date in [yesterday, today]:
+        users = get_off_hour_users(date)
+        for user in users:
+            try:
+                send_text_message(user, "🌞 Good morning! We’re now open and ready to take your orders. 🍧")
+                print(f"[REMINDER] Sent open reminder to {user}")
+            except Exception as e:
+                print(f"[ERROR] Failed to send reminder to {user}: {e}")
+
+    # Clear yesterday's data
+    delete_yesterdays_data(yesterday)
+
+# def send_cart_reminder_once():
+#     print("[REMINDER] Sending cart reminders...")
+#     # Implement cart cleanup and reminders here
+#     """Send cart reminders and clean up old carts."""
+#     print("[REMINDER] Sending cart reminders and cleaning up old carts...")
+
+#     ist = timezone('Asia/Kolkata')
+#     now = datetime.now(ist)
+
+#     to_delete = []
+
+#     for phone, cart in list(user_cart.items()):
+#         last_time_raw = cart.get("last_interaction_time")
+#         reminder_sent = cart.get("reminder_sent", False)
+#         address = cart.get("address")
+
+#         if last_time_raw:
+#             try:
+#                 if isinstance(last_time_raw, datetime):
+#                     last_time = last_time_raw
+#                 else:
+#                     last_time = datetime.strptime(last_time_raw, "%Y-%m-%d %H:%M:%S")
+#                     last_time = ist.localize(last_time)
+#             except Exception as e:
+#                 print("⚠️ Error parsing last interaction time:", e)
+#                 continue
+
+#             if now - last_time > timedelta(days=1):
+#                 print(f"🗑️ Deleting abandoned cart for {phone}")
+#                 to_delete.append(phone)
+#             elif now - last_time > timedelta(minutes=5) and cart.get("summary") and not address and not reminder_sent:
+#                 send_text_message(phone, "🛒 Just a reminder! You still have items in your cart. Complete your order with delivery or takeaway.")
+#                 user_cart[phone]["reminder_sent"] = True
+
+#     for phone in to_delete:
+#         del user_cart[phone]
+
+
+# handlers/cart_handler.py
+
+def update_cart_interaction(phone):
+    """Update cart timestamp"""
+    cart = get_user_cart(phone)
+    print("[PRINTING LAST INTERACTION] :", cart)
+    # Set interaction time if missing
+    if cart:
+        cart["last_interaction_time"] = get_current_ist_time()
+    print("[PRINTING AFTER LAST INTERACTION] :", cart)
+    set_user_cart(phone, cart)
+
+def send_cart_reminder_once(phone):
+    """Send cart reminder to user"""
+    cart = get_user_cart(phone)
+    print("[PRINTING INSIDE CART REMINDER ONCE] :", cart)
+    if not cart:  # ✅ Handle missing cart
+        print(f"[REMINDER] No cart found for {phone}")
+        return False
+
+    if not cart.get("summary"):
+        return False
+
+    reminder_message = (
+        "🛒 Just a reminder! You still have items in your cart.\n"
+        f"{cart.get('summary', '')}\n"
+        "Complete your order with delivery or takeaway now! 😊"
+    )
+
+    try:
+        send_text_message(phone, reminder_message)
+        cart["reminder_sent"] = True
+        set_user_cart(phone, cart)
+        print(f"[REMINDER] Sent cart reminder to {phone}")
+        return True
+    except Exception as e:
+        print(f"[ERROR] Failed to send cart reminder to {phone}: {e}")
+        return False
 
 # Confirm Order
 def confirm_order(to, branch, order_id, payment_mode, user_cart, discount, paid=False):

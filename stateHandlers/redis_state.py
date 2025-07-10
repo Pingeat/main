@@ -1,5 +1,7 @@
 # stateHandlers/redis_state.py
 
+from datetime import datetime
+from pytz import timezone 
 import redis
 import os
 import json
@@ -59,6 +61,7 @@ def get_pending_orders():
 
 def get_pending_order(order_id):
     """Get a specific pending order by ID"""
+    order_id = order_id.strip().upper()
     data = redis_client.get(f"order:{order_id}")
     return json.loads(data) if data else None
 
@@ -68,6 +71,7 @@ def update_pending_order_reminders(order_id, count):
     redis_client.setex(f"order:{order_id}", 180, json.dumps(order_data))
 
 def remove_pending_order(order_id):
+    order_id = order_id.strip().upper()
     redis_client.delete(f"order:{order_id}")
 
 
@@ -88,3 +92,22 @@ def get_active_orders(customer_number):
                     "Status": order_data.get("status")
                 })
     return active_orders
+
+# ===== ACTIVE Hours =====
+
+def add_off_hour_user(phone):
+    """Add user to today's off-hour list"""
+    today = datetime.now(timezone('Asia/Kolkata')).date().isoformat()
+    redis_client.sadd(f"off_hour_users:{today}", phone)
+    redis_client.expire(f"off_hour_users:{today}", 86400)  # Auto-delete after 24h
+
+def get_off_hour_users(date=None):
+    """Get users who messaged during off-hours"""
+    if not date:
+        date = datetime.now(timezone('Asia/Kolkata')).date().isoformat()
+    
+    return redis_client.smembers(f"off_hour_users:{date}")
+
+def delete_yesterdays_data(yesterday) :
+    # Clear yesterday's data
+    redis_client.delete(f"off_hour_users:{yesterday}")

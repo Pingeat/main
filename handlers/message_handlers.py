@@ -9,12 +9,13 @@ from services.whatsapp_service import (
     send_full_catalog, send_kitchen_branch_alert_template
 )
 import googlemaps
-from services.order_service import confirm_order, generate_order_id, log_order_to_csv
+from services.order_service import confirm_order, generate_order_id, log_order_to_csv, update_cart_interaction
 from utils.logger import log_user_activity
 from utils.location_utils import get_branch_from_location
+from utils.operational_hours_utils import handle_off_hour_message, is_store_open
 from utils.payment_utils import generate_payment_link
 from config.settings import ADMIN_NUMBERS, BRANCH_BLOCKED_USERS, BRANCH_STATUS, CART_PRODUCTS, BRANCH_DISCOUNTS, ORDERS_CSV
-from stateHandlers.redis_state import add_pending_order, get_active_orders, get_pending_order, get_pending_orders, get_user_cart, set_user_cart, delete_user_cart, get_user_state, set_user_state, delete_user_state
+from stateHandlers.redis_state import add_pending_order, get_active_orders, get_pending_order, get_pending_orders, get_user_cart, remove_pending_order, set_user_cart, delete_user_cart, get_user_state, set_user_state, delete_user_state
 
 gmaps = googlemaps.Client(GOOGLE_MAPS_API_KEY)
 
@@ -32,7 +33,15 @@ def handle_incoming_message(data):
                 msg = messages[0]
                 sender = msg.get("from").lstrip('+')  # Normalize sender ID
                 message_type = msg.get("type")
-
+                
+                print("[SENDER]: ", sender)
+                # Update cart interaction time
+                update_cart_interaction(sender)
+                
+                # Check Store Operational Hours
+                if not is_store_open():
+                    handle_off_hour_message(sender)
+                    return "Closed hours", 200
                 # Log activity
                 if message_type == "text":
                     text = msg.get("text", {}).get("body", "").strip().lower()
@@ -166,6 +175,7 @@ def handle_location(sender, latitude, longitude):
             "longitude": longitude
         })
         set_user_cart(sender, cart)
+        update_cart_interaction(sender)
         set_user_state(sender, {"step": "catalog_shown", "branch": branch})
         send_text_message(sender, f"We can deliver from {branch.title()} branch!")
         branch = branch.lower()
@@ -200,6 +210,7 @@ def handle_location_by_text(sender,text):
             "longitude": longitude
         })
             set_user_cart(sender, cart)
+            update_cart_interaction(sender)
             set_user_state(sender, {"step": "catalog_shown", "branch": branch})
             send_text_message(sender, f"We can deliver from {branch.title()} branch!")
             branch = branch.lower()
@@ -231,6 +242,7 @@ def handle_order_message(sender, items):
         "order_id": generate_order_id(),
     }
     set_user_cart(sender, cart)
+    update_cart_interaction(sender)
     send_text_message(sender, "📍 Please share your current location to check delivery availability.")
     set_user_state(sender, {"step": "awaiting_location"})
     
@@ -251,6 +263,7 @@ def handle_button_click(sender, button_text):
             "address": "Takeaway"
         })
         set_user_cart(sender, cart)
+        update_cart_interaction(sender)
         discount = get_branch_discount(sender, branch, get_user_cart)
         confirm_order(sender, branch, order_id, "Takeaway", cart, discount, paid=False)
         set_user_state(sender, {"step": "order_confirmed"})
@@ -272,6 +285,7 @@ def handle_address_input(sender, address):
     
     cart["address"] = address
     set_user_cart(sender, cart)
+    update_cart_interaction(sender)
 
     if action == "COD":
         discount = get_branch_discount(sender, branch, get_user_cart)
@@ -282,6 +296,7 @@ def handle_address_input(sender, address):
             send_pay_online_template(sender, link)
             cart["payment_link"] = link
             set_user_cart(sender, cart)
+            update_cart_interaction(sender)
         else:
             send_text_message(sender, "⚠️ Failed to generate payment link. Please try again.")
 
@@ -352,6 +367,7 @@ def handle_update_order_status(sender, text):
         new_status_clean = "On the Way"
 
     order_data = get_pending_order(order_id)
+    print("[DEBUG_PENDING_ORDERS]: ", get_pending_orders())
 
     if not order_data:
         send_text_message(sender, f"❌ Order ID `{order_id}` not found.")
@@ -367,7 +383,11 @@ def handle_update_order_status(sender, text):
 
     # Notify customer
     send_text_message(customer_number, f"📦 Your order `{order_id}` is now *{new_status_clean}*.")
-
+    
+    # ✅ If delivered, reset user and delete order
+    if new_status_clean == "Delivered":
+        maybe_reset_user_after_delivery(customer_number, order_id)
+        
     # Notify admin
     send_text_message(sender, f"✅ Order `{order_id}` marked as *{new_status_clean}*.")
 
@@ -384,15 +404,26 @@ def handle_update_order_status(sender, text):
         "Status": new_status_clean
     })
 # ✅ RESET USER AFTER DELIVERY
-def maybe_reset_user_after_delivery(order_id):
-    with open(ORDERS_CSV, "r", newline='', encoding="utf-8") as infile:
-        reader = csv.DictReader(infile)
-        for row in reader:
-            if row["Order ID"] == order_id and row["Status"] == "Delivered":
-                customer_number = row["Customer Number"].strip()
-                set_user_state(customer_number, {"step": "start"})
-                delete_user_cart(customer_number)
-                send_text_message(customer_number, "✅ Thank you for your order! Feel free to place a new one anytime.")
+def maybe_reset_user_after_delivery(customer_number, order_id):
+    """
+    Resets user state/cart and removes the order when delivered
+    """
+    try:
+        # ✅ Clear user state and cart
+        set_user_state(customer_number, {"step": "start"})
+        delete_user_cart(customer_number)
+        print("[USER STATE] : ", get_user_state(customer_number))
+
+        # ✅ Remove order from Redis
+        remove_pending_order(order_id)
+
+        send_text_message(
+            customer_number,
+            "✅ Your order has been delivered! Feel free to place a new one anytime."
+        )
+        print(f"[RESET] User {customer_number} reset after delivery of {order_id}")
+    except Exception as e:
+        print(f"[ERROR] Failed to reset user: {e}")
 
 
 # Check Admin

@@ -15,9 +15,11 @@ from utils.location_utils import get_branch_from_location
 from utils.operational_hours_utils import handle_off_hour_message, is_store_open
 from utils.payment_utils import generate_payment_link
 from config.settings import ADMIN_NUMBERS, BRANCH_BLOCKED_USERS, BRANCH_STATUS, CART_PRODUCTS, BRANCH_DISCOUNTS, ORDERS_CSV
-from stateHandlers.redis_state import add_pending_order, get_active_orders, get_pending_order, get_pending_orders, get_user_cart, remove_pending_order, set_user_cart, delete_user_cart, get_user_state, set_user_state, delete_user_state
+from stateHandlers.redis_state import add_pending_order, get_active_orders, get_pending_order, get_pending_orders, get_user_cart, set_user_cart, delete_user_cart, get_user_state, set_user_state, delete_user_state
+from handlers.randomMessage_handler import matching
 
 gmaps = googlemaps.Client(GOOGLE_MAPS_API_KEY)
+
 
 
 # Handle Incoming Messages
@@ -70,6 +72,8 @@ def handle_incoming_message(data):
                         handle_post_order_choice(sender, text)
                     elif current_state.get("step") == "awaiting_location":
                         handle_location_by_text(sender, text)
+                    else:
+                        matching(sender,text)    
                     return "OK", 200
 
                 # LOCATION MESSAGE HANDLING

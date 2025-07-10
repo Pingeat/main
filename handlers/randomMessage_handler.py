@@ -30,8 +30,7 @@ def matching(sender,text):
   
     else:
         send_full_catalog(sender)
-        #print("Sorry, I didn’t quite catch that 🤔")
-        #print("Just send a 'Hi' or 'Hello' to explore our catalog of yummy delights!🍪🍩")
+    
         
 
         

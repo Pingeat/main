@@ -93,6 +93,20 @@ def get_active_orders(customer_number):
                 })
     return active_orders
 
+def get_pending_orders_for_user(phone):
+    """Get all pending orders for a specific user"""
+    keys = redis_client.keys("order:*")
+    result = {}
+    
+    for key in keys:
+        order_id = key.split(":")[1]
+        order_data = json.loads(redis_client.get(key))
+        
+        if order_data.get("customer") == phone:
+            result[order_id] = order_data
+            
+    return result
+
 # ===== ACTIVE Hours =====
 
 def add_off_hour_user(phone):
@@ -111,3 +125,32 @@ def get_off_hour_users(date=None):
 def delete_yesterdays_data(yesterday) :
     # Clear yesterday's data
     redis_client.delete(f"off_hour_users:{yesterday}")
+
+# ===== Feedback ===== #
+FEEDBACK_SCHEDULED_KEY = "feedback_scheduled:{}"
+def add_scheduled_feedback(to_number, order_id) :
+    # Store scheduled feedback for reference
+    redis_client.setex(FEEDBACK_SCHEDULED_KEY.format(to_number), 86400, order_id)
+
+def get_scheduled_feedback(phone_number):
+    redis_client.get(FEEDBACK_SCHEDULED_KEY.format(phone_number))
+
+def delete_scheduled_feedfack(phone_number):
+    # Clean up Redis
+    redis_client.delete(FEEDBACK_SCHEDULED_KEY.format(phone_number))
+
+def add_feedback_history(phone, order_id, rating):
+    """Track user feedback history"""
+    feedback_key = f"feedback_history:{phone}"
+    feedback_data = {
+        "order_id": order_id,
+        "rating": rating,
+        "timestamp": get_current_ist_time()
+    }
+    redis_client.rpush(feedback_key, json.dumps(feedback_data))
+    redis_client.expire(feedback_key, 86400 * 30)  # Keep 30 days
+
+
+def get_current_ist_time():
+    ist = timezone('Asia/Kolkata')
+    return datetime.now(ist).strftime("%Y-%m-%d %H:%M:%S")

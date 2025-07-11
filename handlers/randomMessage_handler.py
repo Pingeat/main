@@ -3,7 +3,8 @@ import json
 from pathlib import Path
 from services.whatsapp_service import (
     send_selected_catalog_items,
-    send_full_catalog
+    send_full_catalog,
+    send_text_message
 )
 
 
@@ -29,6 +30,7 @@ def matching(sender,text):
         send_selected_catalog_items(sender,matched_items_id)
   
     else:
+        send_text_message(sender, "It seems I wasn’t able to understand your request. No problem — here’s our full menu to help guide your selection 🍉🍌🍎🫐")
         send_full_catalog(sender)
  
         

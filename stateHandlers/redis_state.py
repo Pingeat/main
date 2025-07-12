@@ -52,18 +52,31 @@ def get_all_states():
     return {k.split(":")[1]: json.loads(redis_client.get(k)) for k in keys} if keys else {}
 
 # ===== ACTIVE ORDERS =====
-def add_pending_order(order_id, order_data):
-    redis_client.setex(f"order:{order_id}", 180, json.dumps(order_data))
+def add_pending_order(order_id, order_data, ttl=180):
+    """
+    Add or update a pending order in Redis
+    """
+    try:
+        redis_client.setex(f"order:{order_id.upper()}", ttl, json.dumps(order_data))
+        print(f"[REDIS] Updated order {order_id} with status: {order_data.get('status')}")
+    except Exception as e:
+        print(f"[ERROR] Failed to save order {order_id}: {e}")
 
 def get_pending_orders():
     keys = redis_client.keys("order:*")
     return {key.split(":")[1]: json.loads(redis_client.get(key)) for key in keys} if keys else {}
 
 def get_pending_order(order_id):
-    """Get a specific pending order by ID"""
     order_id = order_id.strip().upper()
     data = redis_client.get(f"order:{order_id}")
-    return json.loads(data) if data else None
+    if not data:
+        print(f"[ERROR] Order {order_id} not found in Redis")
+        return None
+    try:
+        return json.loads(data)
+    except Exception as e:
+        print(f"[ERROR] Failed to parse order {order_id}: {e}")
+        return None
 
 def update_pending_order_reminders(order_id, count):
     order_data = json.loads(redis_client.get(f"order:{order_id}"))
@@ -71,26 +84,27 @@ def update_pending_order_reminders(order_id, count):
     redis_client.setex(f"order:{order_id}", 180, json.dumps(order_data))
 
 def remove_pending_order(order_id):
-    order_id = order_id.strip().upper()
-    redis_client.delete(f"order:{order_id}")
+    # order_id = order_id.strip().upper()
+    redis_client.delete(f"order:{order_id.upper()}")
 
 
 def get_active_orders(customer_number):
-    keys = redis_client.keys("order:*")
     active_orders = []
-
-    for key in keys:
+    for key in redis_client.keys("order:*"):
         order_id = key.split(":")[1]
-        order_data = json.loads(redis_client.get(key))
-
-        if order_data.get("customer") == customer_number:
-            if order_data.get("status") in ["Pending", "Preparing", "On the Way"]:
-                active_orders.append({
-                    "Order ID": order_id,
-                    "Branch": order_data.get("branch"),
-                    "Total": order_data.get("total"),
-                    "Status": order_data.get("status")
-                })
+        try:
+            order_data = json.loads(redis_client.get(key))
+            if order_data.get("customer") == customer_number:
+                status = order_data.get("status", "Pending")
+                if status in ["Pending", "Preparing", "On the Way"]:
+                    active_orders.append({
+                        "Order ID": order_id,
+                        "Branch": order_data.get("branch", ""),
+                        "Total": order_data.get("total", 0),
+                        "Status": status
+                    })
+        except Exception as e:
+            print(f"[ERROR] Redis parse error: {e}")
     return active_orders
 
 def get_pending_orders_for_user(phone):
@@ -154,3 +168,10 @@ def add_feedback_history(phone, order_id, rating):
 def get_current_ist_time():
     ist = timezone('Asia/Kolkata')
     return datetime.now(ist).strftime("%Y-%m-%d %H:%M:%S")
+
+
+# Get all customers from Redis
+def get_all_customers():
+    """Get all customers from Redis carts"""
+    carts = get_all_carts()
+    return set(carts.keys())

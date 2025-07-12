@@ -11,8 +11,8 @@ def is_store_open():
     now = datetime.now(ist).time()
     
     # Store open hours (adjust as needed)
-    open_time = time(00, 0)     # 9:00 AM IST
-    close_time = time(22, 0)   # 10:00 PM IST
+    open_time = time(9, 0)     # 9:00 AM IST
+    close_time = time(23, 0)   # 10:00 PM IST
     
     return open_time <= now <= close_time
 

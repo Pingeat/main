@@ -1,5 +1,7 @@
 # services/whatsapp_service.py
 
+import json
+import re
 import requests
 from config.credentials import META_ACCESS_TOKEN, WHATSAPP_API_URL, META_PHONE_NUMBER_ID
 
@@ -237,3 +239,149 @@ def send_feedback_template(to):
 
     response = requests.post(WHATSAPP_API_URL, json=payload, headers=headers)
     print("📤 Sent feedback quick reply template:", response.status_code, response.text)
+
+def send_marketing_promo1(phone_number, message_text):
+    cleaned_message = clean_message_text(message_text)
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": phone_number,
+        "type": "template",
+        "template": {
+            "name": "promo_mark",  # Your correct template name
+            "language": { "code": "en_US" },
+            "components": [
+                {
+                    "type": "body",
+                    "parameters": [
+                        { "type": "text", "text": cleaned_message }
+                    ]
+                }
+                # ❌ No need to send header if it's static
+                # ❌ No need to send footer component if it's static
+            ]
+        }
+    }
+
+    print("📦 Payload:", json.dumps(payload, indent=2))
+    headers = {
+        "Authorization": f"Bearer {META_ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    response = requests.post(WHATSAPP_API_URL, json=payload, headers=headers)
+    print("📤 Sent promo message:", response.status_code, response.text)
+
+def send_marketing_promo2(phone_number, message_text):
+    cleaned_message = clean_message_text(message_text)
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": phone_number,
+        "type": "template",
+        "template": {
+            "name": "promo_marketing_p",
+            "language": { "code": "en_US" },
+            "components": [
+                {
+                    "type": "body",
+                    "parameters": [
+                        { "type": "text", "text": cleaned_message }
+                    ]
+                }
+            ]
+        }
+    }
+    print("📦 Payload:", json.dumps(payload, indent=2))
+    headers = {
+        "Authorization": f"Bearer {META_ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    response = requests.post(WHATSAPP_API_URL, json=payload, headers=headers)
+    print("📤 Sent promo message:", response.status_code, response.text)
+    
+def send_marketing_promo(phone_number, message_text):
+    cleaned_message = clean_message_text(message_text)
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": phone_number,
+        "type": "template",
+        "template": {
+            "name": "promo_marketing",
+            "language": { "code": "en_US" },
+            "components": [
+                {
+                    "type": "header",
+                    "parameters": [
+                        {
+                            "type": "image",
+                            "image": {
+                                "link": "https://thefruitcustard.com/auto.png"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "body",
+                    "parameters": [
+                        { "type": "text", "text": cleaned_message }
+                    ]
+                }
+            ]
+        }
+    }
+
+    print("📦 Payload:", json.dumps(payload, indent=2))
+    headers = {
+        "Authorization": f"Bearer {META_ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    try:
+        response = requests.post(WHATSAPP_API_URL, json=payload, headers=headers)
+        print(f"[SEND] Marketing promo to {phone_number}: {response.status_code} - {response.text}")
+        return response.status_code == 200
+    except Exception as e:
+        print(f"[ERROR] Failed to send promo to {phone_number}: {str(e)}")
+        return False
+
+def send_catalog_set(phone, retailer_product_id):
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": phone,
+        "type": "template",
+        "template": {
+            "name": "set_cat",  # ✅ Your approved template name
+            "language": { "code": "en_US" },
+            "components": [
+                {
+                    "type": "button",
+                    "sub_type": "CATALOG",
+                    "index": 0,
+                    "parameters": [
+                        {
+                            "type": "action",
+                            "action": {
+                                "thumbnail_product_retailer_id": retailer_product_id  # e.g., "tidjkafgwc"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+
+    headers = {
+        "Authorization": f"Bearer {META_ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    response = requests.post(WHATSAPP_API_URL, headers=headers, json=payload)
+    print("📦 Sent catalog set:", response.status_code, response.text)
+
+def clean_message_text(text, max_len=250):
+    if not text:
+        return ""
+    text = text.replace("\n", " ").replace("\t", " ")
+    text = re.sub(r"\s{2,}", " ", text)
+    text = re.sub(r"[^\x20-\x7E₹]+", "", text)  # allow only safe ASCII + ₹
+    return text.strip()[:max_len]

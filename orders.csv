@@ -1,0 +1,77 @@
+Order ID,Customer Number,Order Time,Branch,Address,Summary,Total,Payment Mode,Paid,Status
+ORD-DC1FCE,919640112005,2025-07-11 21:25:01,madhapur,shhh if,"Watermelon juice (200ml) x1
+
+💰 *Total Payable*: ₹80",80,COD,False,Pending
+ord-dc1fce,919640112005,madhapur,shhh if,"Watermelon juice (200ml) x1
+
+💰 *Total Payable*: ₹80",80,COD,False,Preparing
+ord-dc1fce,919640112005,madhapur,shhh if,"Watermelon juice (200ml) x1
+
+💰 *Total Payable*: ₹80",80,COD,False,Delivered
+ORD-8B8904,919640112005,2025-07-11 21:30:22,madhapur,skeletal,"Apricot Delight x1
+
+
+💸 *40% Discount Applied*: -₹72
+💰 *Total Payable*: ₹108",180,COD,False,Pending
+ord-8b8904,919640112005,madhapur,skeletal,"Apricot Delight x1
+
+
+💸 *40% Discount Applied*: -₹72
+💰 *Total Payable*: ₹108",180,COD,False,Delivered
+ORD-110FA8,919951082973,2025-07-11 21:34:53,madhapur,jagdish,"Apricot Delight x1
+
+
+💸 *40% Discount Applied*: -₹72
+💰 *Total Payable*: ₹108",180,COD,False,Pending
+ord-110fa8,919951082973,madhapur,jagdish,"Apricot Delight x1
+
+
+💸 *40% Discount Applied*: -₹72
+💰 *Total Payable*: ₹108",180,COD,False,Preparing
+ord-110fa8,919951082973,madhapur,jagdish,"Apricot Delight x1
+
+
+💸 *40% Discount Applied*: -₹72
+💰 *Total Payable*: ₹108",180,COD,False,On the Way
+ORD-38B955,919951082973,2025-07-11 22:02:42,madhapur,mahakal,"Apricot Delight x1
+
+💰 *Total Payable*: ₹180",180,COD,False,Pending
+ORD-38B955,919951082973,madhapur,mahakal,"Apricot Delight x1
+
+💰 *Total Payable*: ₹180",180,COD,False,Preparing
+ORD-38B955,919951082973,madhapur,mahakal,"Apricot Delight x1
+
+💰 *Total Payable*: ₹180",180,COD,False,On the Way
+ORD-7A7C21,918074301029,2025-07-12 12:09:39,kondapur,uridisi,"Apricot Delight x1
+
+💰 *Total Payable*: ₹180",180,COD,False,Pending
+ORD-7A7C21,918074301029,kondapur,uridisi,"Apricot Delight x1
+
+💰 *Total Payable*: ₹180",180,COD,False,Preparing
+ORD-7A7C21,918074301029,kondapur,uridisi,"Apricot Delight x1
+
+💰 *Total Payable*: ₹180",180,COD,False,On the Way
+ORD-7A7C21,918074301029,kondapur,uridisi,"Apricot Delight x1
+
+💰 *Total Payable*: ₹180",180,COD,False,Delivered
+ORD-07A05F,918074301029,2025-07-12 12:13:43,kondapur,hddumiri,"Apricot Delight x1
+
+💰 *Total Payable*: ₹180",180,COD,False,Pending
+ORD-07A05F,918074301029,kondapur,hddumiri,"Apricot Delight x1
+
+💰 *Total Payable*: ₹180",180,COD,False,Preparing
+ORD-8BBD91,918074301029,2025-07-12 12:38:53,Kondapur,brooch,"Apricot Delight x1
+
+💰 *Total Payable*: ₹180",180,COD,False,Pending
+ORD-8BBD91,918074301029,Kondapur,brooch,"Apricot Delight x1
+
+💰 *Total Payable*: ₹180",180,COD,False,Preparing
+ORD-14ADDA,18577075495,2025-07-12 13:37:28,kondapur,miyapur,"Apricot Delight x1
+
+💰 *Total Payable*: ₹180",180,COD,False,Pending
+ORD-59B439,918074301029,2025-07-12 15:29:28,Kondapur,nduk di,"Apricot Delight x1
+
+💰 *Total Payable*: ₹180",180,COD,False,Pending
+ORD-59B439,918074301029,Kondapur,nduk di,"Apricot Delight x1
+
+💰 *Total Payable*: ₹180",180,COD,False,Preparing

@@ -11,7 +11,7 @@ def start_scheduler():
     print("[SCHEDULER] Starting job scheduler...")
     scheduler = BackgroundScheduler(timezone='Asia/Kolkata')
     scheduler.add_job(send_open_reminders, 'cron', hour=9, minute=0)
-    scheduler.add_job(send_cart_reminders, 'interval', minutes=0.30)
+    scheduler.add_job(send_cart_reminders, 'interval', minutes=10)
     # scheduler.add_job(check_pending_orders, 'interval', seconds=30)
     scheduler.start()
     print("[SCHEDULER] Scheduler started.")

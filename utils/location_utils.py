@@ -12,6 +12,6 @@ def get_branch_from_location(latitude, longitude):
     print(BRANCHES)
     for branch_name, info in BRANCHES.items():
         coords = tuple(info["coordinates"])
-        if geodesic(user_coords, coords).km <= 2:
+        if geodesic(user_coords, coords).km <= 10:
             return branch_name
     return None

@@ -23,7 +23,8 @@ from handlers.randomMessage_handler import matching
 gmaps = googlemaps.Client(GOOGLE_MAPS_API_KEY)
 quick_reply_ratings = {"5- outstanding": "5", "4- excellent": "4", "3 – good": "3", "2 – average": "2", "1 – poor": "1"}
 
-
+party_orders_link = "https://wa.me/918688641919?text=I%20am%20looking%20for%20a%20bulk%20order"
+subscriptions_link = "https://wa.me/918688641919?text=I%20am%20looking%20for%20juices%2C%20oatmeals%20or%20fruit%20bowl%20subscription "
 
 # Handle Incoming Messages
 def handle_incoming_message(data):
@@ -274,6 +275,10 @@ def handle_button_click(sender, button_text):
         log_user_activity(sender, "catalog_sent")
     elif button_text == "delivery":
         send_payment_option_template(sender)
+    elif button_text == "party orders":
+        send_text_message(sender,f" 🎉 For party orders, message us here: {party_orders_link}")
+    elif button_text == "subscriptions":
+        send_text_message(sender,f" 📦 For subscriptions, message us here: {subscriptions_link}")
     elif button_text == "takeaway":
         cart = get_user_cart(sender)
         state = get_user_state(sender)

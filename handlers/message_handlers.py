@@ -23,6 +23,7 @@ from handlers.randomMessage_handler import matching
 gmaps = googlemaps.Client(GOOGLE_MAPS_API_KEY)
 quick_reply_ratings = {"5- outstanding": "5", "4- excellent": "4", "3 – good": "3", "2 – average": "2", "1 – poor": "1"}
 
+#links
 party_orders_link = "https://wa.me/918688641919?text=I%20am%20looking%20for%20a%20bulk%20order"
 subscriptions_link = "https://wa.me/918688641919?text=I%20am%20looking%20for%20juices%2C%20oatmeals%20or%20fruit%20bowl%20subscription "
 

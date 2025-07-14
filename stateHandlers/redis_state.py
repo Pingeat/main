@@ -52,13 +52,16 @@ def get_all_states():
     return {k.split(":")[1]: json.loads(redis_client.get(k)) for k in keys} if keys else {}
 
 # ===== ACTIVE ORDERS =====
-def add_pending_order(order_id, order_data, ttl=180):
+def add_pending_order(order_id, order_data):
     """
-    Add or update a pending order in Redis
+    Add or update a pending order in Redis with a created_at timestamp.
     """
     try:
-        redis_client.setex(f"order:{order_id.upper()}", ttl, json.dumps(order_data))
-        print(f"[REDIS] Updated order {order_id} with status: {order_data.get('status')}")
+        # Add created_at timestamp if not already present
+        if 'created_at' not in order_data:
+            order_data['created_at'] = datetime.utcnow().isoformat()
+        redis_client.set(f"order:{order_id.upper()}", json.dumps(order_data))
+        print(f"[REDIS] Added order {order_id} with status: {order_data.get('status')}")
     except Exception as e:
         print(f"[ERROR] Failed to save order {order_id}: {e}")
 
@@ -79,9 +82,10 @@ def get_pending_order(order_id):
         return None
 
 def update_pending_order_reminders(order_id, count):
-    order_data = json.loads(redis_client.get(f"order:{order_id}"))
+    key = f"order:{order_id}"
+    order_data = json.loads(redis_client.get(key))
     order_data["reminders_sent"] = count
-    redis_client.setex(f"order:{order_id}", 180, json.dumps(order_data))
+    redis_client.set(key, json.dumps(order_data))  # No TTL
 
 def remove_pending_order(order_id):
     # order_id = order_id.strip().upper()

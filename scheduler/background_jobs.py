@@ -1,6 +1,8 @@
 # scheduler/background_jobs.py
 
 from datetime import datetime, timedelta
+import threading
+import time
 from pytz import timezone
 from apscheduler.schedulers.background import BackgroundScheduler
 from services.order_service import send_cart_reminder_once, send_open_reminders
@@ -37,47 +39,6 @@ def check_pending_orders():
             # After 3 minutes, cancel the order
             send_text_message(customer, f"❌ Your order `{order_id}` has been cancelled due to inactivity.")
             remove_pending_order(order_id)
-
-
-# # scheduler/background_jobs.py
-
-# def send_cart_reminders():
-#     """Send cart reminders to users with incomplete orders"""
-#     print("[SCHEDULER] Checking for cart reminders...")
-    
-#     from stateHandlers.redis_state import get_all_carts
-    
-#     carts = get_all_carts()
-#     for phone, cart in carts.items():
-#         if not cart.get("summary"):
-#             continue
-            
-#         if cart.get("reminder_sent"):
-#             continue
-            
-#         try:
-#             # Convert string time back to datetime
-#             last_time = datetime.strptime(cart["last_interaction_time"], "%Y-%m-%d %H:%M:%S")
-#             ist = timezone('Asia/Kolkata')
-#             last_time = ist.localize(last_time)
-            
-#             now = datetime.now(ist)
-            
-#             # Send reminder after 5 minutes
-#             if now - last_time > timedelta(minutes=5):
-#                 send_cart_reminder_once(phone)
-                
-#             # Delete after 24 hours
-#             if now - last_time > timedelta(days=1):
-#                 delete_user_cart(phone)
-#                 print(f"[CART] Deleted abandoned cart for {phone}")
-                
-#         except Exception as e:
-#             print(f"[ERROR] Failed to process cart for {phone}: {e}")
-
-
-
-
 
 def send_cart_reminders():
     """Send cart reminders to users with incomplete orders"""
@@ -127,3 +88,32 @@ def send_cart_reminders():
 
         except Exception as e:
             print(f"[ERROR] Failed to process cart for {phone}: {e}")
+
+
+def check_expired_pending_orders():
+    while True:
+        try:
+            now = datetime.utcnow()
+            orders = get_pending_orders()  # Returns all orders from Redis
+            for order_id, order_data in orders.items():
+                if order_data.get('status') == 'Pending':
+                    created_at_str = order_data.get('created_at')
+                    if not created_at_str:
+                        continue  # Skip if no timestamp
+
+                    created_at = datetime.fromisoformat(created_at_str)
+                    if (now - created_at).total_seconds() >= 180:
+                        customer_phone = order_data.get('customer')
+                        # Send cancellation message
+                        send_text_message(
+                            customer_phone,
+                            f"❌ Your order {order_id} has been cancelled due to inactivity."
+                        )
+                        # Delete the order
+                        remove_pending_order(order_id)
+        except Exception as e:
+            print(f"[ERROR] Checking expired pending orders: {e}")
+        time.sleep(60)  # Run every 60 seconds
+
+# Start the background thread
+threading.Thread(target=check_expired_pending_orders, daemon=True).start()

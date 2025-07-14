@@ -117,7 +117,7 @@ def handle_greeting(sender, current_state):
     from stateHandlers.redis_state import get_pending_orders
     pending_orders = get_pending_orders()
 
-    active_orders = [o for o in pending_orders.values() if o["customer"] == sender and o["status"] == "Pending"]
+    active_orders = [o for o in pending_orders.values() if o["customer"] == sender and o["status"] == "Pending" or "Preparing"]
 
     if active_orders:
         print("[DEBUG] Active Orders:", active_orders)
@@ -337,7 +337,7 @@ def handle_post_order_choice(sender, response):
         return "OK", 200
 
     from stateHandlers.redis_state import get_pending_orders
-    pending_orders = [o for o in get_pending_orders().values() if o["customer"] == sender and o["status"] == "Pending"]
+    pending_orders = [o for o in get_pending_orders().values() if o["customer"] == sender and o["status"] == "Pending" or "Preparing"]
     max_choice = len(pending_orders) + 1
 
     if choice < 1 or choice > max_choice:
@@ -350,6 +350,7 @@ def handle_post_order_choice(sender, response):
         delete_user_cart(sender)
     else:
         selected = pending_orders[choice - 1]
+        print("[handle_post_order_choice] :", selected)
         send_text_message(sender, f"📦 Order Status: {selected['status']}\n🆔 Order ID: {selected['order_id']}")
 
     return "OK", 200
@@ -395,10 +396,11 @@ def handle_update_order_status(sender, text):
         return
 
     # Update order data
+    print("[PRINTIIG PENDING ORDER] :",get_pending_order(order_id))
     order_data["status"] = new_status_clean
     order_data["reminders_sent"] = 6  # Stop reminders
-    ttl = 86400 if new_status_clean in ["Preparing", "On the Way", "Delivered"] else 180
-    add_pending_order(order_id, order_data, ttl=ttl)
+    add_pending_order(order_id, order_data)
+    print("[PRINTIIG PENDING ORDER] :",get_pending_order(order_id))
 
     # Notify customer
     customer = order_data.get("customer")

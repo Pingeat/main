@@ -20,6 +20,9 @@ from config.settings import ADMIN_NUMBERS, BRANCH_BLOCKED_USERS, BRANCH_STATUS, 
 from stateHandlers.redis_state import add_pending_order, get_active_orders, get_pending_order, get_pending_orders, get_user_cart, remove_pending_order, set_user_cart, delete_user_cart, get_user_state, set_user_state, delete_user_state
 from handlers.randomMessage_handler import matching
 
+party_order_link = " https://wa.me/918688641919?text=I%20am%20looking%20for%20a%20bulk%20order"
+subscriptions_link = "https://wa.me/918688641919?text=I%20am%20looking%20for%20juices%2C%20oatmeals%20or%20fruit%20bowl%20subscription"
+
 gmaps = googlemaps.Client(GOOGLE_MAPS_API_KEY)
 quick_reply_ratings = {"5- outstanding": "5", "4- excellent": "4", "3 – good": "3", "2 – average": "2", "1 – poor": "1"}
 
@@ -272,6 +275,10 @@ def handle_button_click(sender, button_text):
     if button_text == "order now":
         send_full_catalog(sender)
         log_user_activity(sender, "catalog_sent")
+    elif button_text == "party orders":
+        send_text_message(sender,f"🎉 For party orders, message us here:{party_order_link}")
+    elif button_text == "subscriptions":
+        send_text_message(sender,f"📦 For subscriptions, message us here:{subscriptions_link}")
     elif button_text == "delivery":
         send_payment_option_template(sender)
     elif button_text == "takeaway":
@@ -337,8 +344,10 @@ def handle_post_order_choice(sender, response):
         return "OK", 200
 
     from stateHandlers.redis_state import get_pending_orders
-    pending_orders = [o for o in get_pending_orders().values() if o["customer"] == sender and o["status"] == "Pending"]
-    max_choice = len(pending_orders) + 1
+
+    pending_orders = [o for o in get_pending_orders().values() if o["customer"] == sender]
+    max_choice = len(pending_orders)-1
+    #print("🪼",get_pending_orders())
 
     if choice < 1 or choice > max_choice:
         send_text_message(sender, f"❗ Invalid choice. Pick between 1 and {max_choice}")
@@ -353,6 +362,8 @@ def handle_post_order_choice(sender, response):
         send_text_message(sender, f"📦 Order Status: {selected['status']}\n🆔 Order ID: {selected['order_id']}")
 
     return "OK", 200
+
+
 
 #Check Status Of Current Order
 def handle_check_status(sender):
@@ -373,7 +384,7 @@ def handle_check_status(sender):
 # Update Order Status
 def handle_update_order_status(sender, text):
     if not is_admin(sender):
-        send_text_message(sender, "⚠️ Admin-only command.")
+        send_text_message(sender, "Hi there! This information is only available to our admin team at the moment. Let us know if there's anything else we can help you with!")
         return
 
     parts = text.split()

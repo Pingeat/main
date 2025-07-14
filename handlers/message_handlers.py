@@ -272,11 +272,23 @@ def handle_button_click(sender, button_text):
     if button_text == "order now":
         send_full_catalog(sender)
         log_user_activity(sender, "catalog_sent")
+
     elif button_text == "delivery":
-        send_payment_option_template(sender)
-    elif button_text == "takeaway":
-        cart = get_user_cart(sender)
         state = get_user_state(sender)
+        if state.get("order_type") == "Takeaway":
+            send_text_message(sender, "⚠️ You've already selected Takeaway. Please continue with it or restart the order.")
+            return "OK", 200
+        set_user_state(sender, {**state, "order_type": "Delivery"})
+        send_payment_option_template(sender)
+
+    elif button_text == "takeaway":
+        state = get_user_state(sender)
+        if state.get("order_type") == "Delivery":
+            send_text_message(sender, "⚠️ You've already selected Delivery. Please continue with it or restart the order.")
+            return "OK", 200
+        set_user_state(sender, {**state, "order_type": "Takeaway"})
+
+        cart = get_user_cart(sender)
         branch = state.get("branch") or cart.get("branch")
         order_id = cart.get("order_id") or generate_order_id()
         cart.update({
@@ -288,18 +300,28 @@ def handle_button_click(sender, button_text):
         discount = get_branch_discount(sender, branch, get_user_cart)
         confirm_order(sender, branch, order_id, "Takeaway", cart, discount, paid=False)
         set_user_state(sender, {"step": "order_confirmed"})
+
     elif button_text in ["pay now", "cod"]:
-        cart = get_user_cart(sender)
         state = get_user_state(sender)
+        existing_action = state.get("action")
+        selected_action = button_text.upper()
+
+        if existing_action and existing_action != selected_action:
+            send_text_message(sender, f"⚠️ You've already selected {existing_action}. Please continue with it or restart the order.")
+            return "OK", 200
+
+        cart = get_user_cart(sender)
         branch = state.get("branch") or cart.get("branch")
-        set_user_state(sender, {"step": "awaiting_address", "action": button_text.upper(), "branch": branch})
+        set_user_state(sender, {"step": "awaiting_address", "action": selected_action, "branch": branch})
         send_text_message(sender, "Please enter your full delivery address:")
+
     elif button_text in quick_reply_ratings:
         rating_value = quick_reply_ratings[button_text]
         save_feedback(sender, rating_value)
         send_text_message(sender, "🙏 Thank you for your feedback!")
         delete_user_state(sender)
         return "OK", 200
+
 
 #Handle Address Input
 def handle_address_input(sender, address):

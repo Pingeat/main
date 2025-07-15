@@ -267,25 +267,39 @@ def handle_order_message(sender, items):
     send_text_message(sender, "📍 Please share your current location to check delivery availability.")
     set_user_state(sender, {"step": "awaiting_location"})
     
-#Handle Button Clicks
+def check_order_conflict(sender, selected_type):
+    state = get_user_state(sender)
+    existing_type = state.get("order_type")
+    if existing_type and existing_type != selected_type:
+        send_text_message(sender, f"⚠️ You've already selected {existing_type}. Please continue with it or restart the order.")
+        return True
+    return False
+
+def check_action_conflict(sender, selected_action):
+    state = get_user_state(sender)
+    existing_action = state.get("action")
+    if existing_action and existing_action != selected_action:
+        send_text_message(sender, f"⚠️ You've already selected {existing_action}. Please continue with it or restart the order.")
+        return True
+    return False
+
+# Handle button click
 def handle_button_click(sender, button_text):
     if button_text == "order now":
         send_full_catalog(sender)
         log_user_activity(sender, "catalog_sent")
 
     elif button_text == "delivery":
-        state = get_user_state(sender)
-        if state.get("order_type") == "Takeaway":
-            send_text_message(sender, "⚠️ You've already selected Takeaway. Please continue with it or restart the order.")
+        if check_order_conflict(sender, "Delivery"):
             return "OK", 200
+        state = get_user_state(sender)
         set_user_state(sender, {**state, "order_type": "Delivery"})
         send_payment_option_template(sender)
 
     elif button_text == "takeaway":
-        state = get_user_state(sender)
-        if state.get("order_type") == "Delivery":
-            send_text_message(sender, "⚠️ You've already selected Delivery. Please continue with it or restart the order.")
+        if check_order_conflict(sender, "Takeaway"):
             return "OK", 200
+        state = get_user_state(sender)
         set_user_state(sender, {**state, "order_type": "Takeaway"})
 
         cart = get_user_cart(sender)
@@ -302,15 +316,12 @@ def handle_button_click(sender, button_text):
         set_user_state(sender, {"step": "order_confirmed"})
 
     elif button_text in ["pay now", "cod"]:
-        state = get_user_state(sender)
-        existing_action = state.get("action")
         selected_action = button_text.upper()
-
-        if existing_action and existing_action != selected_action:
-            send_text_message(sender, f"⚠️ You've already selected {existing_action}. Please continue with it or restart the order.")
+        if check_action_conflict(sender, selected_action):
             return "OK", 200
 
         cart = get_user_cart(sender)
+        state = get_user_state(sender)
         branch = state.get("branch") or cart.get("branch")
         set_user_state(sender, {"step": "awaiting_address", "action": selected_action, "branch": branch})
         send_text_message(sender, "Please enter your full delivery address:")
@@ -323,7 +334,7 @@ def handle_button_click(sender, button_text):
         return "OK", 200
 
 
-#Handle Address Input
+# Handle address input
 def handle_address_input(sender, address):
     cart = get_user_cart(sender)
     state = get_user_state(sender)

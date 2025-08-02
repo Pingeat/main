@@ -3,6 +3,7 @@ import csv
 from datetime import datetime, timedelta
 from pytz import timezone
 import requests
+from stateHandlers.redis_state import get_user_cart
 
 # File paths
 BASE_DIR = "/home/ec2-user/whatsapp-meta-bot"
@@ -89,8 +90,17 @@ def send_cart_reminders_if_inactive():
     with open(REMINDED_USERS_CSV, "a", newline="") as f:
         writer = csv.writer(f)
         for phone in to_remind:
+            cart_items = get_user_cart(phone)  # You need to implement this
+            if not cart_items:
+                print(f"📭 {phone} has an empty cart.")
+                continue  # Skip sending reminder
+
+            cart_str = "\n".join(cart_items) if isinstance(cart_items, list) else str(cart_items)
+            print(f"🔔 Reminding {phone} with cart:\n{cart_str}\n")
+
             send_text_message(phone, "🛒 You were checking out our menu earlier. Don’t miss out! Complete your order now 🍧")
             writer.writerow([phone, today_ist_str()])
 
+            
 if __name__ == "__main__":
     send_cart_reminders_if_inactive()

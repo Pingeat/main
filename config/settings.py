@@ -15,8 +15,14 @@ import json
 
 # Load products from JSON file
 CART_PRODUCTS = json.loads((Path(__file__).parent.parent / "data" / "products.json").read_text())
+RAKHI_HAMPER_PRODUCTS = json.loads((Path(__file__).parent.parent / "data" / "products.json").read_text())
 
+BRANCHES = [
+    "madhapur", "kondapur", "west maredpally", "manikonda", 
+    "nanakramguda", "nizampet", "miyapur", "pragathinagar"
+]
 
+DATES = ["8th August","9th August"]
 
 BRANCH_DISCOUNTS = {
     "kondapur": 0,

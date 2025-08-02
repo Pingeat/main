@@ -8,8 +8,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from pytz import timezone
 from config.settings import BRANCH_DISCOUNTS, ORDERS_CSV, KITCHEN_NUMBERS
-from services.whatsapp_service import send_text_message,  send_kitchen_branch_alert_template
+from services.whatsapp_service import send_text_message,  send_kitchen_branch_alert_template,send_selected_catalog_items
 from stateHandlers.redis_state import add_pending_order, delete_user_cart, delete_yesterdays_data, get_off_hour_users, get_user_cart, set_user_cart, set_user_state
+catalog_lookup = json.loads((Path(__file__).parent.parent / "data" / "products.json").read_text())
+
 
 def log_order_to_csv(order_data):
     print("[ORDER SERVICE] Logging order...")
@@ -66,13 +68,42 @@ def send_cart_reminder_once(phone):
         f"{cart.get('summary', '')}\n"
         "Complete your order with delivery or takeaway now! 😊"
     )
-
+    ####new code to test
     try:
-        send_text_message(phone, reminder_message)
-        cart["reminder_sent"] = True
-        set_user_cart(phone, cart)
-        print(f"[REMINDER] Sent cart reminder to {phone}")
-        return True
+    
+        cart = get_user_cart(phone)
+        print(f"[🛒🛒🛒 DEBUG] Cart for {phone}: {cart}")
+
+        if not cart or "summary" not in cart:
+            print(f"[REMINDER] No summary in cart for {phone}")
+            return False
+
+        # Step 1: Extract product names from summary
+        lines = cart["summary"].strip().split("\n")
+        product_names = [line.rsplit(" x", 1)[0].strip() for line in lines]  # Extract names before " xN"
+
+        # Step 2: Match names to catalog to get product IDs
+        name_to_id = {v["name"]: k for k, v in catalog_lookup.items()}
+        product_ids = []
+
+        for name in product_names:
+            product_id = name_to_id.get(name)
+            if product_id:
+                product_ids.append(product_id)
+            else:
+                print(f"[WARN] Product name '{name}' not found in catalog.")
+
+        # Step 3: Send message
+        if product_ids:
+            send_selected_catalog_items(phone, product_ids)
+            cart["reminder_sent"] = True
+            set_user_cart(phone, cart)
+            print(f"[REMINDER] Sent catalog reminder with items: {product_ids}")
+            return True
+        else:
+            print(f"[REMINDER] No matching product IDs found for {phone}")
+            return False
+            
     except Exception as e:
         print(f"[ERROR] Failed to send cart reminder to {phone}: {e}")
         return False

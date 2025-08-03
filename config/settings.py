@@ -6,7 +6,10 @@ USER_LOG_CSV = "user_activity_log.csv"
 OFF_HOUR_USERS_CSV = "offhour_users.csv"
 PROMO_LOG_CSV = "promo_sent_log.csv"
 
-KITCHEN_NUMBERS = ["9640112005","8074301029"]
+KITCHEN_NUMBERS = ["9640112005","8074301029","8885112242"]
+OPEN_TIME = 9
+CLOSE_TIME = 22
+DISTANCE = 3
 
 
 # Product Catalog

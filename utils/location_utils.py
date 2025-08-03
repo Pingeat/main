@@ -1,5 +1,6 @@
 # utils/location_utils.py
 
+from config.settings import DISTANCE
 from geopy.distance import geodesic
 import json
 from pathlib import Path
@@ -12,6 +13,6 @@ def get_branch_from_location(latitude, longitude):
     print(BRANCHES)
     for branch_name, info in BRANCHES.items():
         coords = tuple(info["coordinates"])
-        if geodesic(user_coords, coords).km <= 10:
+        if geodesic(user_coords, coords).km <= DISTANCE:
             return branch_name
     return None

@@ -2,6 +2,7 @@
 
 from datetime import datetime, time
 from pytz import timezone  # ✅ Correct import
+from config.settings import CLOSE_TIME, OPEN_TIME
 from services.whatsapp_service import send_text_message
 
 
@@ -11,8 +12,11 @@ def is_store_open():
     now = datetime.now(ist).time()
     
     # Store open hours (adjust as needed)
-    open_time = time(9, 0)     # 9:00 AM IST
-    close_time = time(23, 0)   # 10:00 PM IST
+    open_time = time(OPEN_TIME, 0)     # 9:00 AM IST
+    close_time = time(CLOSE_TIME, 0)   # 10:00 PM IST
+    print(open_time)
+    print(close_time)
+    print(now)
     
     return open_time <= now <= close_time
 
@@ -22,4 +26,4 @@ def handle_off_hour_message(sender):
     if not is_store_open():
         from stateHandlers.redis_state import add_off_hour_user
         add_off_hour_user(sender)
-        send_text_message(sender, "🕒 We're currently closed. Please come back between 9:00 AM and 10:00 PM IST.")
+        send_text_message(sender, f"🕒 We're currently closed. Please come back between {OPEN_TIME} AM and {CLOSE_TIME} PM IST.")

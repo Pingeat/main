@@ -1,0 +1,10 @@
+sudo systemctl daemon-reload
+
+# To stop ngrok
+sudo systemctl stop ngrok
+
+# To run ngrok
+sudo systemctl start ngrok
+
+#To run permanently
+journalctl -u ngrok -f --no-pager

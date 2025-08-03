@@ -18,7 +18,7 @@ import json
 
 # Load products from JSON file
 CART_PRODUCTS = json.loads((Path(__file__).parent.parent / "data" / "products.json").read_text())
-
+party_orders_link = "https://wa.me/918688641919?text=I%20am%20looking%20for%20a%20bulk%20order"
 
 
 BRANCH_DISCOUNTS = {

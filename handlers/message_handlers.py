@@ -8,7 +8,7 @@ from services.whatsapp_service import (
     send_delivery_takeaway_template,
     send_payment_option_template,
     send_pay_online_template,
-    send_full_catalog, send_kitchen_branch_alert_template
+    send_full_catalog, send_kitchen_branch_alert_template,send_rakhi_products
 )
 import googlemaps
 from services.order_service import confirm_order, generate_order_id, log_order_to_csv, update_cart_interaction
@@ -44,10 +44,12 @@ def handle_incoming_message(data):
                 # Update cart interaction time
                 update_cart_interaction(sender)
                 
+                '''
                 # Check Store Operational Hours
                 if not is_store_open():
                     handle_off_hour_message(sender)
                     return "Closed hours", 200
+                '''
                 # Log activity
                 if message_type == "text":
                     text = msg.get("text", {}).get("body", "").strip().lower()
@@ -301,6 +303,9 @@ def handle_button_click(sender, button_text):
         
     elif button_text == "party orders":
         send_text_message(sender,party_orders_link)
+        
+    elif button_text == "rakhi hampers":
+        send_rakhi_products(sender)
 
     elif button_text == "delivery":
         if check_order_conflict(sender, "Delivery"):

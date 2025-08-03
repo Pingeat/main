@@ -183,6 +183,60 @@ def send_selected_catalog_items(to,selected_items):
 
     response = requests.post(WHATSAPP_API_URL, json=payload, headers=headers)
     print(f"[WHATSAPP] Sent selected items. Status: {response.status_code}, Response: {response.text}")
+    
+    
+def send_rakhi_products(to):
+    """
+    Send only Rakhi products from catalog 
+    """
+
+    # product id's
+    rakhi_product_ids = [
+        "51jetppvov",   
+        "5hfaymh61s",   
+        "aadudpumcb"    
+    ]
+
+    payload = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": to,
+        "type": "interactive",
+        "interactive": {
+            "type": "product_list",
+            "header": {
+                "type": "text",
+                "text": "Rakhi Special 🎁"
+            },
+            "body": {
+                "text": "💖 Celebrate Raksha Bandhan with our handpicked Rakhis!"
+            },
+            "footer": {
+                "text": "Tap to view and order"
+            },
+            "action": {
+                "catalog_id": CATALOG_ID_FOR_MATCHED_ITEMS,  
+                "sections": [
+                    {
+                        "title": "Rakhi Collection ❤️",
+                        "product_items": [
+                            {"product_retailer_id": pid}
+                            for pid in rakhi_product_ids
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+
+    headers = {
+        "Authorization": f"Bearer {META_ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    response = requests.post(WHATSAPP_API_URL, json=payload, headers=headers)
+    print(f"[WHATSAPP] Sent Rakhi products. Status: {response.status_code}, Response: {response.text}")
+
 
 
 def send_kitchen_branch_alert_template(phone_number, order_type, order_id, customer, order_time, item_summary, total, branch, address, location_url): 

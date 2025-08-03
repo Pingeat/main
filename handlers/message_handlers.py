@@ -249,13 +249,21 @@ def handle_location_by_text(sender,text):
 def handle_order_message(sender, items):
     total = 0
     summary = ""
+    print("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO", items)
     for item in items:
         prod_id = item.get("product_retailer_id")
         qty = item.get("quantity", 1)
+        # Use item_price from the order data (critical fix)
+        price = item.get("item_price", 0)  # Default to 0 if missing
+        
+        # Get product name from CART_PRODUCTS if available, else use fallback
         if prod_id in CART_PRODUCTS:
-            product = CART_PRODUCTS[prod_id]
-            total += product["price"] * qty
-            summary += f"{product['name']} x{qty}\n"
+            name = CART_PRODUCTS[prod_id]["name"]
+        else:
+            name = f"Product {prod_id}"  # Fallback name
+        
+        total += price * qty
+        summary += f"{name} x{qty}\n"
 
     cart = {
         "summary": summary,
@@ -288,7 +296,7 @@ def handle_button_click(sender, button_text):
         discount = get_branch_discount(sender, branch, get_user_cart)
         confirm_order(sender, branch, order_id, "Takeaway", cart, discount, paid=False)
         set_user_state(sender, {"step": "order_confirmed"})
-    elif button_text in ["pay now", "cod"]:
+    elif button_text in ["pay now", "cod (cash on delivery)"]:
         cart = get_user_cart(sender)
         state = get_user_state(sender)
         branch = state.get("branch") or cart.get("branch")
@@ -315,9 +323,9 @@ def handle_address_input(sender, address):
     set_user_cart(sender, cart)
     update_cart_interaction(sender)
 
-    if action == "COD":
+    if action == "COD (CASH ON DELIVERY)":
         discount = get_branch_discount(sender, branch, get_user_cart)
-        confirm_order(sender, branch, order_id, "COD", cart, discount, paid=False)
+        confirm_order(sender, branch, order_id, "cod (cash on delivery)", cart, discount, paid=False)
     elif action == "PAY NOW":
         link = generate_payment_link(sender, total, order_id)
         if link:

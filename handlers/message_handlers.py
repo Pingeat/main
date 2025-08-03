@@ -8,7 +8,7 @@ from services.whatsapp_service import (
     send_delivery_takeaway_template,
     send_payment_option_template,
     send_pay_online_template,
-    send_full_catalog, send_kitchen_branch_alert_template,send_rakhi_products
+    send_full_catalog, send_kitchen_branch_alert_template,send_rakhi_products,send_branch_selection_message,send_date_selection_message
 )
 import googlemaps
 from services.order_service import confirm_order, generate_order_id, log_order_to_csv, update_cart_interaction
@@ -19,7 +19,7 @@ from utils.payment_utils import generate_payment_link
 from config.settings import ADMIN_NUMBERS, BRANCH_BLOCKED_USERS, BRANCH_STATUS, CART_PRODUCTS, BRANCH_DISCOUNTS, ORDERS_CSV
 from stateHandlers.redis_state import add_pending_order, get_active_orders, get_pending_order, get_pending_orders, get_user_cart, remove_pending_order, set_user_cart, delete_user_cart, get_user_state, set_user_state, delete_user_state
 from handlers.randomMessage_handler import matching
-from config.settings import party_orders_link
+from config.settings import party_orders_link, BRANCHES, DATES
 
 gmaps = googlemaps.Client(GOOGLE_MAPS_API_KEY)
 quick_reply_ratings = {"5- outstanding": "5", "4- excellent": "4", "3 – good": "3", "2 – average": "2", "1 – poor": "1"}
@@ -278,6 +278,79 @@ def handle_order_message(sender, items):
     update_cart_interaction(sender)
     send_text_message(sender, "📍 Please share your current location to check delivery availability.")
     set_user_state(sender, {"step": "awaiting_location"})
+    
+has_rakhi_hamper = False
+# Handle Order Message Type
+def handle_order_message(sender, items):
+    total = 0
+    summary = ""
+    for item in items:
+        prod_id = item.get("product_retailer_id")
+        qty = item.get("quantity", 1)
+        
+        if prod_id in CART_PRODUCTS:
+            product = CART_PRODUCTS[prod_id]
+            total += product["price"] * qty
+            summary += f"{product['name']} x{qty}\n"
+            
+            if prod_id in RAKHI_HAMPER_PRODUCTS:
+                has_rakhi_hamper = True
+              
+    cart = {
+        "summary": summary,
+        "total": total,
+        "order_id": generate_order_id(),
+    }
+    set_user_cart(sender, cart)
+    update_cart_interaction(sender)
+    
+    if has_rakhi_hamper:
+        send_branch_selection_message(sender)    
+    else:
+        send_text_message(sender, "📍 Please share your current location to check delivery availability.")
+        set_user_state(sender, {"step": "awaiting_location"})
+        
+      
+        
+def handle_branch_selection(sender, selected_branch, current_state):
+    """Handle branch selection from interactive list"""
+
+    if current_state and current_state.get("step") == "SELECT_BRANCH":
+        # Check if the selected branch is valid
+        valid_branches = [b.lower() for b in BRANCHES]
+        if selected_branch.lower() in valid_branches:
+
+            selected_branch = next(
+                b for b in BRANCHES if b.lower() == selected_branch.lower()
+            )
+            
+            # Save selected branch and update state to catalog view
+            set_branch(sender, selected_branch)
+            set_user_state(sender, {"step": "awaiting_branch"})
+            send_date_selection_message(sender)
+            
+     
+            
+def handle_date_selection(sender, selected_date, current_state):
+    """Handle date selection from interactive list"""
+
+    if current_state and current_state.get("step") == "SELECT_DATE":
+        
+        valid_dates = [d.lower() for d in DATES]
+
+        if selected_date in valid_dates:
+            # Save selected date in Redis
+            set_user_state(sender, {"step": "DATE_SELECTED", "selected_date": selected_date})
+            send_text_message(sender, f"✅ Date '{selected_date}' selected successfully.")
+        else:
+            send_text_message(sender, "❌ Invalid date selection. Please try again.")
+    else:
+        
+        send_date_selection_message(sender)
+        set_user_state(sender, {"step": "select_date"})
+        send_delivery_takeaway_template(sender)    
+    
+### 
     
 def check_order_conflict(sender, selected_type):
     state = get_user_state(sender)

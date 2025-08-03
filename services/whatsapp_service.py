@@ -4,6 +4,7 @@ import json
 import re
 import requests
 from config.credentials import CATALOG_ID_FOR_MATCHED_ITEMS, META_ACCESS_TOKEN, WHATSAPP_API_URL, META_PHONE_NUMBER_ID
+from config.settings import BRANCHES, DATES
 
 def send_text_message(to, message):
     print(f"[WHATSAPP] Sending message to {to}")
@@ -236,6 +237,109 @@ def send_rakhi_products(to):
 
     response = requests.post(WHATSAPP_API_URL, json=payload, headers=headers)
     print(f"[WHATSAPP] Sent Rakhi products. Status: {response.status_code}, Response: {response.text}")
+
+   
+###
+def send_branch_selection_message(to):
+    """Send branch selection message using interactive list template"""
+
+    # Create sections for the list
+    sections = [{
+        "title": "Select Branch",
+        "rows": [
+            {"id": branch, "title": branch.title(), "description": ""} 
+            for branch in BRANCHES
+        ]
+    }]
+    
+    payload = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": to,
+        "type": "interactive",
+        "interactive": {
+            "type": "list",
+            "header": {
+                "type": "text",
+                "text": "🏢 SELECT YOUR BRANCH"
+            },
+            "body": {
+                "text": "Please select your branch from the list below:"
+            },
+            "footer": {
+                "text": "Tap to select your branch"
+            },
+            "action": {
+                "button": "Select Branch",
+                "sections": sections
+            }
+        }
+    }
+    
+    headers = {
+        "Authorization": f"Bearer {META_ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        response = requests.post(WHATSAPP_API_URL, json=payload, headers=headers)
+        if response.status_code != 200:
+            print(f"Branch selection error: {response.text}")
+        return response
+    except Exception as e:
+        print(f"Failed to send branch selection: {str(e)}")
+        return None
+
+
+def send_date_selection_message(to):
+    """Send date selection message using interactive list template"""
+
+    # Create sections for the list
+    sections = [{
+        "title": "Select date",
+        "rows": [
+            {"id": date, "title": date.title(), "description": ""} 
+            for date in DATES
+        ]
+    }]
+    
+    payload = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": to,
+        "type": "interactive",
+        "interactive": {
+            "type": "list",
+            "header": {
+                "type": "text",
+                "text": "🗓️ SELECT THE DELIVERY DATE"
+            },
+            "body": {
+                "text": "Please select your delivery date from the list below:"
+            },
+            "footer": {
+                "text": "Tap to select your date"
+            },
+            "action": {
+                "button": "Select date",
+                "sections": sections
+            }
+        }
+    }
+    
+    headers = {
+        "Authorization": f"Bearer {META_ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        response = requests.post(WHATSAPP_API_URL, json=payload, headers=headers)
+        if response.status_code != 200:
+            print(f"Date selection error: {response.text}")
+        return response
+    except Exception as e:
+        print(f"Failed to send date selection: {str(e)}")
+        return None
 
 
 

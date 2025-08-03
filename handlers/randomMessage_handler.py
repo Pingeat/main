@@ -24,11 +24,9 @@ def matching(sender,text):
             matched_items.append(f'{info["name"]} - ₹{info["price"]}')
             matched_items_id.append(id)
     
-    
-
     if matched_items:
         send_selected_catalog_items(sender,matched_items_id)
-  
+        
     else:
         send_text_message(sender, "It seems I wasn’t able to understand your request. No problem — here’s our full menu to help guide your selection 🍉🍌🍎🫐")
         send_full_catalog(sender)

@@ -239,7 +239,6 @@ def send_rakhi_products(to):
     print(f"[WHATSAPP] Sent Rakhi products. Status: {response.status_code}, Response: {response.text}")
 
    
-###
 def send_branch_selection_message(to):
     """Send branch selection message using interactive list template"""
 
@@ -264,7 +263,7 @@ def send_branch_selection_message(to):
                 "text": "🏢 SELECT YOUR BRANCH"
             },
             "body": {
-                "text": "Please select your branch from the list below:"
+                "text": "Please select a branch close to your location:"
             },
             "footer": {
                 "text": "Tap to select your branch"
@@ -315,10 +314,10 @@ def send_date_selection_message(to):
             "type": "list",
             "header": {
                 "type": "text",
-                "text": "🗓️ SELECT THE DELIVERY DATE"
+                "text": "🗓️ SELECT YOUR DELIVERY DATE"
             },
             "body": {
-                "text": "Please select your delivery date from the list below:"
+                "text": "Please select your delivery date:"
             },
             "footer": {
                 "text": "Tap to select your date"

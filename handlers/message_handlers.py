@@ -301,22 +301,42 @@ def handle_order_message(sender, items):
         set_user_state(sender, {"step": "awaiting_location"})
         
       
-        
 def handle_branch_selection(sender, selected_branch, current_state):
-    """Handle branch selection from interactive list"""
+    
     if current_state and current_state.get("step") == "awaiting_location":
-        # Check if the selected branch is valid
-        valid_branches = [b.lower() for b in BRANCHES]
-        if selected_branch.lower() in valid_branches:
 
+        valid_branches = [b.lower() for b in BRANCHES]
+        if selected_branch.lower() not in valid_branches:
+            
             selected_branch = next(
                 b for b in BRANCHES if b.lower() == selected_branch.lower()
             )
-            
-            set_branch(sender, selected_branch)
-            set_user_state(sender, {"step": "SELECT_DATE"})
-            send_date_selection_message(sender)
-            
+
+        geocode = gmaps.geocode(selected_branch)
+        location = geocode[0]["geometry"]["location"]
+        latitude = location["lat"]
+        longitude = location["lng"]
+
+        user_state = get_user_state(sender) or {}
+        user_state.update({
+            "branch": selected_branch,
+            "latitude": latitude,
+            "longitude": longitude,
+            "step": "SELECT_DATE"  
+        })
+        set_user_state(sender, user_state)
+
+        cart = get_user_cart(sender) or {}
+        cart.update({
+            "branch": selected_branch,
+            "latitude": latitude,
+            "longitude": longitude
+        })
+        set_user_cart(sender, cart)
+
+        print(f"[DEBUG] Branch: {selected_branch}, Lat: {latitude}, Lon: {longitude}")
+
+        send_date_selection_message(sender)
 
   
 def handle_date_selection(sender, selected_date, current_state):
@@ -329,10 +349,9 @@ def handle_date_selection(sender, selected_date, current_state):
 
         if selected_date_normalized in valid_dates:
             set_user_state(sender, {"step": "DATE_SELECTED", "selected_date": selected_date_normalized})
+            send_delivery_takeaway_template(sender)
 
 
-    
-### 
     
 def check_order_conflict(sender, selected_type):
     state = get_user_state(sender)

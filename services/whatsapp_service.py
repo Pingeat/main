@@ -294,11 +294,14 @@ def send_branch_selection_message(to):
 def send_date_selection_message(to):
     """Send date selection message using interactive list template"""
 
-    # Create sections for the list
     sections = [{
         "title": "Select date",
         "rows": [
-            {"id": date, "title": date.title(), "description": ""} 
+            {
+                "id": date,       
+                "title": date,     
+                "description": ""
+            } 
             for date in DATES
         ]
     }]

@@ -179,3 +179,8 @@ def get_all_customers():
     """Get all customers from Redis carts"""
     carts = get_all_carts()
     return set(carts.keys())
+
+# ===== SAVING BRANCH =====
+def set_branch(phone, branch_name):
+    """Set branch for a user with TTL of 1 day"""
+    redis_client.setex(f"user_branch:{phone}", 86400, branch_name)

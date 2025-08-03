@@ -3,7 +3,7 @@
 import json
 import re
 import requests
-from config.credentials import META_ACCESS_TOKEN, WHATSAPP_API_URL, META_PHONE_NUMBER_ID
+from config.credentials import CATALOG_ID_FOR_MATCHED_ITEMS, META_ACCESS_TOKEN, WHATSAPP_API_URL, META_PHONE_NUMBER_ID
 
 def send_text_message(to, message):
     print(f"[WHATSAPP] Sending message to {to}")
@@ -162,7 +162,7 @@ def send_selected_catalog_items(to,selected_items):
             "text": "View details below"
             },
             "action": {
-                "catalog_id": "1225552106016549",
+                "catalog_id": CATALOG_ID_FOR_MATCHED_ITEMS,
                 "sections": [
                     {
                         "title": "Products",

@@ -176,34 +176,35 @@ def handle_discount(sender, text):
 # Handle Location Received
 def handle_location(sender, latitude, longitude):
     branch = get_branch_from_location(latitude, longitude)
-    if branch:
-        branch.lower()
+    print("[BRANCHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH]:",branch)
+    if branch is None:
+        send_text_message(sender, "Sorry, we don't deliver to your area.")
+        log_user_activity(sender, "location_received_out_of_area")
+        return
+    branch.lower()
     if not BRANCH_STATUS.get(branch, True):
         send_text_message(sender, f"⚠️ Our *{branch}* branch is currently closed. We’ll notify you when it reopens.")
         BRANCH_BLOCKED_USERS[branch].add(sender)
         log_user_activity(sender, f"branch_closed_attempt: {branch}")
         return
 
-    if branch:
-        cart = get_user_cart(sender)
-        print("[handle_location]:", cart)
-        cart.update({
-            "branch": branch,
-            "latitude": latitude,
-            "longitude": longitude
-        })
-        set_user_cart(sender, cart)
-        update_cart_interaction(sender)
-        set_user_state(sender, {"step": "catalog_shown", "branch": branch})
-        send_text_message(sender, f"We can deliver from {branch.title()} branch!")
-        branch = branch.lower()
-        discount = BRANCH_DISCOUNTS.get(branch, 0)
-        print("[DISCOUNT_BRANCH _RELATED] :", discount)
-        if discount > 0:
-            send_text_message(sender, f"🎉 Congratulations! You've unlocked a {discount}% discount.")
-        send_delivery_takeaway_template(sender)
-    else:
-        send_text_message(sender, "Sorry, we don't deliver to your area.")
+    cart = get_user_cart(sender)
+    print("[handle_location]:", cart)
+    cart.update({
+        "branch": branch,
+        "latitude": latitude,
+        "longitude": longitude
+    })
+    set_user_cart(sender, cart)
+    update_cart_interaction(sender)
+    set_user_state(sender, {"step": "catalog_shown", "branch": branch})
+    send_text_message(sender, f"We can deliver from {branch.title()} branch!")
+    branch = branch.lower()
+    discount = BRANCH_DISCOUNTS.get(branch, 0)
+    print("[DISCOUNT_BRANCH _RELATED] :", discount)
+    if discount > 0:
+        send_text_message(sender, f"🎉 Congratulations! You've unlocked a {discount}% discount.")
+    send_delivery_takeaway_template(sender)
     log_user_activity(sender, "location_received")
     
 # Handle Location By Text
@@ -214,42 +215,42 @@ def handle_location_by_text(sender,text):
         latitude = location["lat"]
         longitude = location["lng"]
         print(f"📍 Address '{text}' resolved to: ({latitude}, {longitude})")
-        branch = get_branch_from_location(latitude,longitude).lower()
+        branch = get_branch_from_location(latitude,longitude)
+        if branch is None:
+            send_text_message(sender, "Sorry, we don't deliver to your area.")
+            log_user_activity(sender, "location_received_out_of_area")
+            return
+        branch.lower()
         # ✅ Check if branch is closed
         if not BRANCH_STATUS.get(branch,True):
             send_text_message(sender, f"⚠️ Our *{branch}* branch is currently closed. We’ll notify you when it reopens.")
             BRANCH_BLOCKED_USERS[branch].add(sender)
             log_user_activity(sender, f"branch_closed_attempt: {branch}")
             return
-        if branch:
-            cart = get_user_cart(sender)
-            print("[handle_location_by_text] :", cart)
-            cart.update({
-            "branch": branch,
-            "latitude": latitude,
-            "longitude": longitude
+        cart = get_user_cart(sender)
+        print("[handle_location_by_text] :", cart)
+        cart.update({
+        "branch": branch,
+        "latitude": latitude,
+        "longitude": longitude
         })
-            set_user_cart(sender, cart)
-            print("[handle_location_by_text] :", cart)
-            update_cart_interaction(sender)
-            set_user_state(sender, {"step": "catalog_shown", "branch": branch})
-            send_text_message(sender, f"We can deliver from {branch.title()} branch!")
-            branch = branch.lower()
-            discount = BRANCH_DISCOUNTS.get(branch, 0)
-            print("[DISCOUNT_BRANCH _RELATED] :", discount)
-            if discount > 0:
-                send_text_message(sender, f"🎉 Congratulations! You've unlocked a {discount}% discount.")
-            send_delivery_takeaway_template(sender)
-    else:
-        send_text_message(sender, "Sorry, we don't deliver to your area.")
-        log_user_activity(sender, "location_received")
+        set_user_cart(sender, cart)
+        print("[handle_location_by_text] :", cart)
+        update_cart_interaction(sender)
+        set_user_state(sender, {"step": "catalog_shown", "branch": branch})
+        send_text_message(sender, f"We can deliver from {branch.title()} branch!")
+        branch = branch.lower()
+        discount = BRANCH_DISCOUNTS.get(branch, 0)
+        print("[DISCOUNT_BRANCH _RELATED] :", discount)
+        if discount > 0:
+            send_text_message(sender, f"🎉 Congratulations! You've unlocked a {discount}% discount.")
+        send_delivery_takeaway_template(sender)
     return "OK", 200
 
 # Handle Order Message Type
 def handle_order_message(sender, items):
     total = 0
     summary = ""
-    print("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO", items)
     for item in items:
         prod_id = item.get("product_retailer_id")
         qty = item.get("quantity", 1)

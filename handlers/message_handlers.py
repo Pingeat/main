@@ -19,6 +19,7 @@ from utils.payment_utils import generate_payment_link
 from config.settings import ADMIN_NUMBERS, BRANCH_BLOCKED_USERS, BRANCH_STATUS, CART_PRODUCTS, BRANCH_DISCOUNTS, ORDERS_CSV
 from stateHandlers.redis_state import add_pending_order, get_active_orders, get_pending_order, get_pending_orders, get_user_cart, remove_pending_order, set_user_cart, delete_user_cart, get_user_state, set_user_state, delete_user_state
 from handlers.randomMessage_handler import matching
+from config.settings import party_orders_link
 
 gmaps = googlemaps.Client(GOOGLE_MAPS_API_KEY)
 quick_reply_ratings = {"5- outstanding": "5", "4- excellent": "4", "3 – good": "3", "2 – average": "2", "1 – poor": "1"}
@@ -297,6 +298,9 @@ def handle_button_click(sender, button_text):
     if button_text == "order now":
         send_full_catalog(sender)
         log_user_activity(sender, "catalog_sent")
+        
+    elif button_text == "party orders":
+        send_text_message(sender,party_orders_link)
 
     elif button_text == "delivery":
         if check_order_conflict(sender, "Delivery"):

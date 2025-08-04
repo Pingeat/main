@@ -44,12 +44,12 @@ def handle_incoming_message(data):
                 # Update cart interaction time
                 update_cart_interaction(sender)
                 
-                '''
+                
                 # Check Store Operational Hours
                 if not is_store_open():
                     handle_off_hour_message(sender)
                     return "Closed hours", 200
-                '''
+                
                 # Log activity
                 if message_type == "text":
                     text = msg.get("text", {}).get("body", "").strip().lower()

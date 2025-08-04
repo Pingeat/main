@@ -138,6 +138,7 @@ def handle_greeting(sender, current_state):
     pending_orders = get_pending_orders()
 
     active_orders = [o for o in pending_orders.values() if o["customer"] == sender and o["status"] == "Pending" or "Preparing"]
+    active_orders = None
 
     if active_orders:
         print("[DEBUG] Active Orders:", active_orders)

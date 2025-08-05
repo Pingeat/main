@@ -47,9 +47,9 @@ def handle_incoming_message(data):
                 
                 
                 # Check Store Operational Hours
-                if not is_store_open():
-                    handle_off_hour_message(sender)
-                    return "Closed hours", 200
+                # if not is_store_open():
+                #     handle_off_hour_message(sender)
+                #     return "Closed hours", 200
                 
                 # Log activity
                 if message_type == "text":

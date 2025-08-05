@@ -193,9 +193,13 @@ def send_rakhi_products(to):
 
     # product id's
     rakhi_product_ids = [
-        "51jetppvov",   
-        "5hfaymh61s",   
-        "aadudpumcb"    
+        "51jetppvov", "oici2ap1qd", 
+        "5hfaymh61s", "8olxnu3afk",
+        "aadudpumcb", "40llavglo4",
+        "jykbu2a2ez", "9l89g0ezc9",
+        "gvil23bxf8", "ygeeysblx2",
+        "eyl9q23h7m", "mo1hlc617k",
+        "p6kuuli1n6"
     ]
 
     payload = {

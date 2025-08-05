@@ -46,6 +46,15 @@ BRANCH_BLOCKED_USERS = {
     "nanakramguda": set()
 }
 
+BRANCH_CONTACTS = {
+    "Kondapur": "916302588275",
+    "Madhapur": "917075442898",
+    "Manikonda": "919392016847",
+    "Nizampet": "916303241076",
+    "Nanakramguda": "916303237242"
+
+}
+
 
 
 ADMIN_NUMBERS = ["918074301029","9640112005","8885112242"]

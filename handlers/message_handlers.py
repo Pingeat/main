@@ -12,6 +12,7 @@ from services.whatsapp_service import (
 )
 import googlemaps
 from services.order_service import confirm_order, generate_order_id, log_order_to_csv, update_cart_interaction
+from utils import logger
 from utils.logger import log_user_activity
 from utils.location_utils import get_branch_from_location
 from utils.operational_hours_utils import handle_off_hour_message, is_store_open
@@ -54,9 +55,9 @@ def handle_incoming_message(data):
                 
                 
                 # Check Store Operational Hours
-                if not is_store_open():
-                    handle_off_hour_message(sender)
-                    return "Closed hours", 200
+                # if not is_store_open():
+                #     handle_off_hour_message(sender)
+                #     return "Closed hours", 200
                 
                 # Log activity
                 if message_type == "text":
@@ -452,15 +453,82 @@ def handle_address_input(sender, address):
     if action == "COD (CASH ON DELIVERY)":
         discount = get_branch_discount(sender, branch, get_user_cart)
         confirm_order(sender, branch, order_id, "cod (cash on delivery)", cart, discount, paid=False)
+    # In your message handler where PAY NOW is processed
     elif action == "PAY NOW":
+        # First send a message that we're generating the payment link
+        send_text_message(sender, "🔄 *Generating Payment Link*\n\nPlease wait a moment while we create your secure payment link...")
+    
+        # Generate payment link with retry
         link = generate_payment_link(sender, total, order_id)
+    
         if link:
+            # Clear the "generating" message by sending the actual payment link
             send_pay_online_template(sender, link)
             cart["payment_link"] = link
             set_user_cart(sender, cart)
             update_cart_interaction(sender)
-        else:
-            send_text_message(sender, "⚠️ Failed to generate payment link. Please try again.")
+            logger.info(f"Payment link successfully sent to {sender} for order {order_id}")
+    else:
+        # Send a more helpful error message with options
+        error_message = ("⚠️ *Payment Link Issue*\n\n"
+                         "We're having trouble generating your payment link. This could be due to:\n\n"
+                         "1. Temporary network issues\n"
+                         "2. Payment gateway maintenance\n\n"
+                         "Please try again in a few minutes. If the issue persists, contact support.")
+        
+        send_text_message(sender, error_message)
+        logger.error(f"Failed to generate payment link for {sender} after multiple attempts")
+
+
+
+# def check_payment_status(order_id):
+#     """
+#     Check if a payment has been completed for a given order.
+    
+#     Args:
+#         order_id (str): The order ID to check
+        
+#     Returns:
+#         tuple: (bool, str) - (is_paid, payment_id or error message)
+#     """
+#     try:
+#         # You'll need to implement this based on Razorpay's API
+#         # This is just a placeholder
+#         url = f"https://api.razorpay.com/v1/payments?reference_id={order_id}"
+        
+#         response = requests.get(
+#             url,
+#             auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET)
+#         )
+        
+#         if response.status_code == 200:
+#             payments = response.json().get("items", [])
+#             for payment in payments:
+#                 if payment.get("status") == "captured":
+#                     return True, payment.get("id")
+        
+#         return False, "Payment not completed yet"
+#     except Exception as e:
+#         logger.error(f"Error checking payment status: {str(e)}")
+#         return False, str(e)
+
+# def handle_payment_check(sender, order_id):
+#     """Handle payment status check requests from users"""
+#     is_paid, result = check_payment_status(order_id)
+    
+#     if is_paid:
+#         send_text_message(sender, "✅ *Payment Confirmed*\n\nYour payment has been successfully processed. Your order is now being prepared!")
+#         # Update order status to PAID
+#         # update_order_status(order_id, ORDER_STATUS["PAID"])
+#         return True
+#     else:
+#         send_text_message(sender, f"⏳ *Payment Status*\n\n{result}\n\nWould you like to:\n1. Try again\n2. Generate new payment link")
+#         # Store state to handle the next response
+#         set_user_state(sender, {
+#             "step": "PAYMENT_STATUS_CHECK",
+#             "order_id": order_id
+#         })
+#         return False
 
 #Post Order Choice Handler
 def handle_post_order_choice(sender, response):

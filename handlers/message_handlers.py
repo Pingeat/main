@@ -24,7 +24,15 @@ from config.settings import party_orders_link, BRANCHES, DATES
 
 gmaps = googlemaps.Client(GOOGLE_MAPS_API_KEY)
 quick_reply_ratings = {"5- outstanding": "5", "4- excellent": "4", "3 – good": "3", "2 – average": "2", "1 – poor": "1"}
-RAKHI_HAMPER_PRODUCT_IDS = ["51jetppvov", "5hfaymh61s", "aadudpumcb"]
+RAKHI_HAMPER_PRODUCT_IDS = [
+        "51jetppvov", "oici2ap1qd", 
+        "5hfaymh61s", "8olxnu3afk",
+        "aadudpumcb", "40llavglo4",
+        "jykbu2a2ez", "9l89g0ezc9",
+        "gvil23bxf8", "ygeeysblx2",
+        "eyl9q23h7m", "mo1hlc617k",
+        "p6kuuli1n6"
+    ]
 
 
 # Handle Incoming Messages

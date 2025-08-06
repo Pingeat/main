@@ -4,11 +4,12 @@ import os
 import csv
 import uuid
 import json
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from pytz import timezone
 from config.settings import BRANCH_DISCOUNTS, ORDERS_CSV, KITCHEN_NUMBERS
-from services.whatsapp_service import send_text_message,  send_kitchen_branch_alert_template
+from services.whatsapp_service import send_text_message,  send_kitchen_branch_alert_template, send_delivery_takeaway_template
 from stateHandlers.redis_state import add_pending_order, delete_user_cart, delete_yesterdays_data, get_off_hour_users, get_user_cart, set_user_cart, set_user_state
 
 def log_order_to_csv(order_data):
@@ -69,6 +70,8 @@ def send_cart_reminder_once(phone):
 
     try:
         send_text_message(phone, reminder_message)
+        time.sleep(5)
+        send_delivery_takeaway_template(phone)
         cart["reminder_sent"] = True
         set_user_cart(phone, cart)
         print(f"[REMINDER] Sent cart reminder to {phone}")

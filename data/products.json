@@ -1,4 +1,5 @@
 {
+    
     "d6t8psx9pj": {"name": "Watermelon juice (200ml)", "price": 80},
     "e96hotbrrk": {"name": "Mini Dry fruit loaded Fruit Custard Party pack of 9", "price": 1125},
     "epw4m28e9h": {"name": "Ice Pops (orange) Pack of 3", "price": 110},
@@ -171,20 +172,24 @@
     "t43q2vesev": {"name": "Ice Pops (cola) Pack of 3", "price": 110},
     "y1pg71g4dh": {"name": "Reg Fruit Custard Party pack of 6", "price": 900},
     "zw4j4j0p8q": {"name": "Mango Delight", "price": 180},
+    "vkjb2c4gwv": {"name": "Kulfi (falooda)","price": 80},
+  
 
     "51jetppvov": {"name": "The BIG BRO Rakhi", "price": 120},
     "5hfaymh61s": {"name": "Chhota Rakhi", "price": 100},
     "aadudpumcb": {"name": ".Rakhi - Forever Thread", "price": 130},
     "jykbu2a2ez": {"name": "Cadbury Celebrations Assorted Chocolate - Rakhi Edition gift pack - Rakhi edition", "price": 50},
     "gvil23bxf8": {"name": "Only Orange- Rakhi Edition", "price": 120},
-    "oici2ap1qd": {"name": "Exotic Fruit Custard - Rakhi Edition", "price": 160},
-    "40llavglo4": {"name": "Karachi Bakery Besan Laddu - Rakhi Edition", "price": 99},
+    "oici2ap1qd": {"name": "Exotic Fruit Custard 200gm - Rakhi Edition", "price": 160},
+    "40llavglo4": {"name": "Karachi Bakery Besan Laddu - Rakhi Edition", "price": 115},
     "8olxnu3afk": {"name": "Lal Sweets Motichoor Laddu 200gm - Rakhi Edition", "price": 120},
     "9l89g0ezc9": {"name": "Ferrero Rocher Gift Pack of 4 - Rakhi Edition", "price": 168},
-    "eyl9q23h7m": {"name": "Dry Fruit Loaded Custard Bowl - Rakhi Edition", "price": 150},
+    "eyl9q23h7m": {"name": "Dry Fruit Loaded Custard Bowl 200gm - Rakhi Edition", "price": 150},
     "mo1hlc617k": {"name": "Post card - Rakhi Edition", "price": 0},
     "p6kuuli1n6": {"name": "LAL Besan Ladoo Classic 80gm - Rakhi Edition", "price": 40},
-    "ygeeysblx2": {"name": "Fruit Custard mini 200gm - Rakhi Edition", "price": 130}
-    
+    "ygeeysblx2": {"name": "Fruit Custard mini 200gm - Rakhi Edition", "price": 130},
+    "h23noiy3ww": {"name": "Rakhi Shagun Kit", "price" : 140},
+    "pkaqawhcp4": {"name": "Rakhi - Rakhi - Ties that Matter", "price" : 120},
+    "9jw5hvyhhv": {"name": "Only Watermelon- Rakhi Edition" , "price" : 90} 
+                          
 }
-

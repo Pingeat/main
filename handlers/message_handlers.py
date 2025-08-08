@@ -445,7 +445,6 @@ def handle_button_click(sender, button_text):
         set_user_state(sender, {"step": "order_confirmed"})
 
     elif button_text in ["pay now", "cod (cash on delivery)"]:
-        print("[BUTTOONNNNNNNNNNNNNNNNNNNNNNNNNNNNN]:", button_text)
         selected_action = button_text.upper()
         if check_action_conflict(sender, selected_action):
             return "OK", 200
@@ -487,7 +486,7 @@ def handle_address_input(sender, address):
         send_text_message(sender, "🔄 *Generating Payment Link*\n\nPlease wait a moment while we create your secure payment link...")
     
         # Generate payment link with retry
-        link = generate_payment_link(sender, 1, order_id)
+        link = generate_payment_link(sender, total, order_id)
     
         if link:
             # Clear the "generating" message by sending the actual payment link

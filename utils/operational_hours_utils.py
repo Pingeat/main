@@ -27,4 +27,4 @@ def handle_off_hour_message(sender):
     if not is_store_open():
         from stateHandlers.redis_state import add_off_hour_user
         add_off_hour_user(sender)
-        send_text_message(sender, f"🕒 We're currently closed. Please come back between {OPEN_TIME} AM and {CLOSE_TIME} PM IST.")
+        send_text_message(sender, f"🕒 We're currently closed. Please come back between {OPEN_TIME} AM and {11} PM IST.")

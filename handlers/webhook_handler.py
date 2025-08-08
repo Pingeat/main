@@ -41,7 +41,7 @@ def payment_success():
         confirm_order(whatsapp_number, "Online", order_id, paid=True)
     return "Payment confirmed", 200
 
-@webhook_bp.route("/razorpay-webhook-tfc1", methods=["POST"])
+@webhook_bp.route("/razorpay-webhook-tfc", methods=["POST"])
 def razorpay_webhook():
     data = request.get_json()
     if data.get("event") == "payment_link.paid":

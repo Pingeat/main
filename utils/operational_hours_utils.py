@@ -4,12 +4,13 @@ from datetime import datetime, time
 from pytz import timezone  # ✅ Correct import
 from config.settings import CLOSE_TIME, OPEN_TIME
 from services.whatsapp_service import send_text_message
+from utils.time_utils import get_current_ist
 
 
 def is_store_open():
     """Check if current time is within business hours"""
     ist = timezone('Asia/Kolkata')
-    now = datetime.now(ist).time()
+    now = get_current_ist().time()
     
     # Store open hours (adjust as needed)
     open_time = time(OPEN_TIME, 0)     # 9:00 AM IST

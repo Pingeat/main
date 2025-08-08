@@ -384,6 +384,7 @@ def send_kitchen_branch_alert_template(phone_number, order_type, order_id, custo
 
     response = requests.post(WHATSAPP_API_URL, json=payload, headers=headers)
     print("📤 Sent kitchen/branch alert:", response.status_code, response.text)
+    print("📤 Sent kitchen/branch alert to :",phone_number)
 
 def send_feedback_template(to):
     payload = {

@@ -184,3 +184,39 @@ def get_all_customers():
 def set_branch(phone, branch_name):
     """Set branch for a user with TTL of 1 day"""
     redis_client.setex(f"user_branch:{phone}", 86400, branch_name)
+
+
+
+# ===== BRANCH STATUS =====
+
+BRANCH_STATUS_KEY = "branch_status"
+
+def get_branch_status():
+    """Return branch status dictionary from Redis. Defaults to all True if missing."""
+    data = redis_client.get(BRANCH_STATUS_KEY)
+    if data:
+        return json.loads(data)
+    # Default if nothing is stored yet
+    default_status = {
+        "kondapur": True,
+        "madhapur": True,
+        "manikonda": True,
+        "nizampet": True,
+        "nanakramguda": True
+    }
+    redis_client.set(BRANCH_STATUS_KEY, json.dumps(default_status))
+    return default_status
+
+def set_branch_status(branch_name, is_open):
+    """Update a single branch's status in Redis."""
+    branch_name = branch_name.strip().lower()
+    status = get_branch_status()
+    status[branch_name] = is_open
+    redis_client.set(BRANCH_STATUS_KEY, json.dumps(status))
+    return status
+
+def is_branch_open(branch_name):
+    """Check if a branch is open from Redis."""
+    branch_name = branch_name.strip().lower()
+    status = get_branch_status()
+    return status.get(branch_name, True)

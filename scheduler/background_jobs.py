@@ -8,6 +8,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from services.order_service import send_cart_reminder_once, send_open_reminders
 from services.whatsapp_service import send_text_message
 from stateHandlers.redis_state import delete_user_cart, get_pending_orders, remove_pending_order, update_pending_order_reminders
+from utils.time_utils import get_current_ist
 
 def start_scheduler():
     print("[SCHEDULER] Starting job scheduler...")
@@ -53,7 +54,7 @@ def send_cart_reminders():
         return
 
     ist = timezone('Asia/Kolkata')
-    now = datetime.now(ist)
+    now = get_current_ist()
 
     for phone, cart in carts.items():
         if not cart:  # Skip None or empty cart

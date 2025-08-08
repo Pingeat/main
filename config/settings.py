@@ -7,8 +7,8 @@ OFF_HOUR_USERS_CSV = "offhour_users.csv"
 PROMO_LOG_CSV = "promo_sent_log.csv"
 
 KITCHEN_NUMBERS = ["9640112005","8074301029","8885112242"]
-OPEN_TIME = 9
-CLOSE_TIME = 22
+OPEN_TIME = 1
+CLOSE_TIME = 9
 DISTANCE = 3
 
 
@@ -47,14 +47,14 @@ BRANCH_BLOCKED_USERS = {
 }
 
 BRANCH_CONTACTS = {
-    "Kondapur": "916302588275",
-    "Madhapur": "917075442898",
-    "Manikonda": "919392016847",
-    "Nizampet": "916303241076",
-    "Nanakramguda": "916303237242"
+    "kondapur": ["916302588275"],
+    "madhapur": ["917075442898"],
+    "manikonda": ["919392016847"],
+    "nizampet": ["916303241076"],
+    "nanakramguda": ["916303237242"]
 
 }
 
 
-
-ADMIN_NUMBERS = ["918074301029","9640112005","8885112242"]
+OTHER_NUMBERS = ["919640112005","8885112242", "918074301029"]
+ADMIN_NUMBERS = ["919640112005","8885112242", "918074301029"]

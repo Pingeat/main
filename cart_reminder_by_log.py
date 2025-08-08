@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 from pytz import timezone
 import requests
 
+from utils.time_utils import get_current_ist
+
 # File paths
 BASE_DIR = "/home/ec2-user/whatsapp-meta-bot"
 USER_LOG_CSV = os.path.join(BASE_DIR, "user_activity_log.csv")
@@ -25,10 +27,10 @@ if not os.path.exists(REMINDED_USERS_CSV):
         writer.writerow(["Customer Number", "Date"])
 
 def today_ist_str():
-    return datetime.now(timezone("Asia/Kolkata")).strftime("%Y-%m-%d")
+    return get_current_ist(timezone("Asia/Kolkata")).strftime("%Y-%m-%d")
 
 def get_reminded_today():
-    today = today_ist_str()
+    today = get_current_ist()
     reminded = set()
     with open(REMINDED_USERS_CSV, newline="") as f:
         reader = csv.DictReader(f)
@@ -56,7 +58,7 @@ def send_text_message(to, message):
 
 def send_cart_reminders_if_inactive():
     ist = timezone("Asia/Kolkata")
-    now = datetime.now(ist)
+    now = get_current_ist()
     reminded = get_reminded_today()
     last_log = {}
 

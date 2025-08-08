@@ -11,14 +11,14 @@ from services.whatsapp_service import (
     send_full_catalog, send_kitchen_branch_alert_template,send_rakhi_products,send_branch_selection_message,send_date_selection_message
 )
 import googlemaps
-from services.order_service import confirm_order, generate_order_id, log_order_to_csv, update_cart_interaction
+from services.order_service import confirm_order, confirm_order_after_payment, generate_order_id, log_order_to_csv, update_cart_interaction
 from utils import logger
 from utils.logger import log_user_activity
 from utils.location_utils import get_branch_from_location
 from utils.operational_hours_utils import handle_off_hour_message, is_store_open
 from utils.payment_utils import generate_payment_link
 from config.settings import ADMIN_NUMBERS, BRANCH_BLOCKED_USERS, BRANCH_STATUS, CART_PRODUCTS, BRANCH_DISCOUNTS, ORDERS_CSV
-from stateHandlers.redis_state import add_pending_order, get_active_orders, get_pending_order, get_pending_orders, get_user_cart, remove_pending_order, set_user_cart, delete_user_cart, get_user_state, set_user_state, delete_user_state, set_branch
+from stateHandlers.redis_state import add_pending_order, get_active_orders, get_pending_order, get_pending_orders, get_user_cart, is_branch_open, remove_pending_order, set_user_cart, delete_user_cart, get_user_state, set_user_state, delete_user_state, set_branch
 from handlers.randomMessage_handler import matching
 from config.settings import party_orders_link, BRANCHES, DATES
 
@@ -55,9 +55,9 @@ def handle_incoming_message(data):
                 
                 
                 # Check Store Operational Hours
-                # if not is_store_open():
-                #     handle_off_hour_message(sender)
-                #     return "Closed hours", 200
+                if not is_store_open():
+                    handle_off_hour_message(sender)
+                    return "Closed hours", 200
                 
                 # Log activity
                 if message_type == "text":
@@ -164,24 +164,53 @@ def handle_greeting(sender, current_state):
         set_user_state(sender, {"step": "start"})
 
 # Handle Open/Close Branch Command
+# def handle_open_close(sender, text):
+#     parts = text.split()
+#     if len(parts) == 2:
+#         action, branch_name = parts
+#         branch_key = branch_name.strip().lower()
+#         if branch_key not in BRANCH_STATUS:
+#             send_text_message(sender, f"⚠️ Unknown branch: {branch_name}. Valid options: {', '.join(BRANCH_STATUS.keys())}")
+#         elif action == "open":
+#             BRANCH_STATUS[branch_key] = True
+#             send_text_message(sender, f"✅ Branch *{branch_name.title()}* is now *open* for delivery.")
+#             for user in BRANCH_BLOCKED_USERS.get(branch_key, []):
+#                 send_text_message(user, f"📣 Our *{branch_name.title()}* branch is now open! You can place your order again. 🎉")
+#                 BRANCH_BLOCKED_USERS[branch_key].clear()
+#         elif action == "close":
+#             BRANCH_STATUS[branch_key] = False
+#             print(BRANCH_STATUS)
+#             send_text_message(sender, f"🚫 Branch *{branch_name.title()}* is now *closed* for delivery.")
+#     else:
+#         send_text_message(sender, "❗ To open/close a branch, use:\n`open madhapur`\n`close kondapur`")
+
+
+from stateHandlers.redis_state import get_branch_status, set_branch_status
+
 def handle_open_close(sender, text):
     parts = text.split()
     if len(parts) == 2:
         action, branch_name = parts
         branch_key = branch_name.strip().lower()
-        if branch_key not in BRANCH_STATUS:
-            send_text_message(sender, f"⚠️ Unknown branch: {branch_name}. Valid options: {', '.join(BRANCH_STATUS.keys())}")
-        elif action == "open":
-            BRANCH_STATUS[branch_key] = True
+
+        branch_status = get_branch_status()
+        if branch_key not in branch_status:
+            send_text_message(sender, f"⚠️ Unknown branch: {branch_name}. Valid options: {', '.join(branch_status.keys())}")
+            return
+
+        if action == "open":
+            set_branch_status(branch_key, True)
             send_text_message(sender, f"✅ Branch *{branch_name.title()}* is now *open* for delivery.")
             for user in BRANCH_BLOCKED_USERS.get(branch_key, []):
                 send_text_message(user, f"📣 Our *{branch_name.title()}* branch is now open! You can place your order again. 🎉")
                 BRANCH_BLOCKED_USERS[branch_key].clear()
+
         elif action == "close":
-            BRANCH_STATUS[branch_key] = False
+            set_branch_status(branch_key, False)
             send_text_message(sender, f"🚫 Branch *{branch_name.title()}* is now *closed* for delivery.")
     else:
         send_text_message(sender, "❗ To open/close a branch, use:\n`open madhapur`\n`close kondapur`")
+
 
 # Handle Discount Setting
 def handle_discount(sender, text):
@@ -206,13 +235,12 @@ def handle_discount(sender, text):
 # Handle Location Received
 def handle_location(sender, latitude, longitude):
     branch = get_branch_from_location(latitude, longitude)
-    print("[BRANCHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH]:",branch)
     if branch is None:
         send_text_message(sender, "Sorry, we don't deliver to your area.")
         log_user_activity(sender, "location_received_out_of_area")
         return
     branch.lower()
-    if not BRANCH_STATUS.get(branch, True):
+    if not is_branch_open(branch):
         send_text_message(sender, f"⚠️ Our *{branch}* branch is currently closed. We’ll notify you when it reopens.")
         BRANCH_BLOCKED_USERS[branch].add(sender)
         log_user_activity(sender, f"branch_closed_attempt: {branch}")
@@ -231,7 +259,6 @@ def handle_location(sender, latitude, longitude):
     send_text_message(sender, f"We can deliver from {branch.title()} branch!")
     branch = branch.lower()
     discount = BRANCH_DISCOUNTS.get(branch, 0)
-    print("[DISCOUNT_BRANCH _RELATED] :", discount)
     if discount > 0:
         send_text_message(sender, f"🎉 Congratulations! You've unlocked a {discount}% discount.")
     send_delivery_takeaway_template(sender)
@@ -250,15 +277,15 @@ def handle_location_by_text(sender,text):
             send_text_message(sender, "Sorry, we don't deliver to your area.")
             log_user_activity(sender, "location_received_out_of_area")
             return
-        branch.lower()
+        branch = branch.lower()
         # ✅ Check if branch is closed
-        if not BRANCH_STATUS.get(branch,True):
+        # ✅ Check if branch is closed
+        if not is_branch_open(branch):
             send_text_message(sender, f"⚠️ Our *{branch}* branch is currently closed. We’ll notify you when it reopens.")
             BRANCH_BLOCKED_USERS[branch].add(sender)
             log_user_activity(sender, f"branch_closed_attempt: {branch}")
             return
         cart = get_user_cart(sender)
-        print("[handle_location_by_text] :", cart)
         cart.update({
         "branch": branch,
         "latitude": latitude,
@@ -418,6 +445,7 @@ def handle_button_click(sender, button_text):
         set_user_state(sender, {"step": "order_confirmed"})
 
     elif button_text in ["pay now", "cod (cash on delivery)"]:
+        print("[BUTTOONNNNNNNNNNNNNNNNNNNNNNNNNNNNN]:", button_text)
         selected_action = button_text.upper()
         if check_action_conflict(sender, selected_action):
             return "OK", 200
@@ -459,7 +487,7 @@ def handle_address_input(sender, address):
         send_text_message(sender, "🔄 *Generating Payment Link*\n\nPlease wait a moment while we create your secure payment link...")
     
         # Generate payment link with retry
-        link = generate_payment_link(sender, total, order_id)
+        link = generate_payment_link(sender, 1, order_id)
     
         if link:
             # Clear the "generating" message by sending the actual payment link
@@ -649,4 +677,5 @@ def maybe_reset_user_after_delivery(customer_number, order_id):
 # Check Admin
 def is_admin(phone):
     # Replace with actual list of admin numbers
+    print (ADMIN_NUMBERS)
     return phone in ADMIN_NUMBERS

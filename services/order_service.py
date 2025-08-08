@@ -8,9 +8,11 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from pytz import timezone
-from config.settings import BRANCH_DISCOUNTS, ORDERS_CSV, KITCHEN_NUMBERS
+from config.settings import BRANCH_CONTACTS, BRANCH_DISCOUNTS, ORDERS_CSV, KITCHEN_NUMBERS, OTHER_NUMBERS
+from handlers.discount_handler import get_branch_discount
 from services.whatsapp_service import send_text_message,  send_kitchen_branch_alert_template, send_delivery_takeaway_template
-from stateHandlers.redis_state import add_pending_order, delete_user_cart, delete_yesterdays_data, get_off_hour_users, get_user_cart, set_user_cart, set_user_state
+from stateHandlers.redis_state import add_pending_order, delete_user_cart, delete_yesterdays_data, get_off_hour_users, get_user_cart, get_user_state, set_user_cart, set_user_state
+from utils.time_utils import get_current_ist
 
 def log_order_to_csv(order_data):
     print("[ORDER SERVICE] Logging order...")
@@ -24,10 +26,10 @@ def log_order_to_csv(order_data):
 def send_open_reminders():
     """Send opening reminders to users who messaged during off-hours"""
     ist = timezone('Asia/Kolkata')
-    today = datetime.now(ist).date().isoformat()
+    today = get_current_ist().date().isoformat()
     
     # Get users who messaged yesterday or today
-    yesterday = (datetime.now(ist) - timedelta(days=1)).date().isoformat()
+    yesterday = (get_current_ist() - timedelta(days=1)).date().isoformat()
     
     for date in [yesterday, today]:
         users = get_off_hour_users(date)
@@ -159,8 +161,11 @@ def confirm_order(to, branch, order_id, payment_mode, user_cart, discount, paid=
     
     # Send confirmation
     send_text_message(to, f"Order confirmed! {customer_msg}")
+    
+    branch_contacts = BRANCH_CONTACTS.get(branch, [])
+    all_kitchen_numbers = branch_contacts + OTHER_NUMBERS
     # Alert kitchen(s)
-    for kitchen in KITCHEN_NUMBERS:
+    for kitchen in all_kitchen_numbers:
         send_kitchen_branch_alert_template(
             phone_number=kitchen,
             order_type=payment_mode,
@@ -183,4 +188,13 @@ def generate_order_id():
 
 def get_current_ist_time():
     ist = timezone('Asia/Kolkata')
-    return datetime.now(ist).strftime("%Y-%m-%d %H:%M:%S")
+    return get_current_ist().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def confirm_order_after_payment(sender,order_id):
+    sender = sender.lstrip('+')
+    cart = get_user_cart(sender)
+    state = get_user_state(sender)
+    branch = state.get("branch") or cart.get("branch")
+    discount = get_branch_discount(sender, branch, get_user_cart)
+    confirm_order(sender,branch,order_id,"online",cart,discount,paid=True)

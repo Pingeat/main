@@ -38,6 +38,7 @@ import os
 import json
 from services.whatsapp_service import send_feedback_template
 from stateHandlers.redis_state import add_scheduled_feedback, delete_scheduled_feedfack, get_pending_order, get_pending_orders_for_user, get_scheduled_feedback, set_user_state
+from utils.time_utils import get_current_ist
 
 # Feedback tracking key
 FEEDBACK_SCHEDULED_KEY = "feedback_scheduled:{}"  # phone -> order_id
@@ -58,7 +59,7 @@ def save_feedback(phone_number, rating):
     
     # Get current IST timestamp
     ist = timezone('Asia/Kolkata')
-    timestamp = datetime.now(ist).strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = get_current_ist().strftime("%Y-%m-%d %H:%M:%S")
     
     # Create feedback CSV if it doesn't exist
     feedback_file = "feedback.csv"

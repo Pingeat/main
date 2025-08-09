@@ -9,7 +9,7 @@ if (dev) :
     GOOGLE_MAPS_API_KEY = "AIzaSyCuUz9N78WZAT1N38ffIDkbySI3_0zkZgE"
 
     RAZORPAY_KEY_ID = "rzp_live_jtGMQ5k5QGHxFg"
-    RAZORPAY_KEY_SECRET = "FEMHAO4zeUFnAiKZPLe44NRN"
+    RAZORPAY_KEY_SECRET = "fruitcustard1234"
 
     WHATSAPP_API_URL = f"https://graph.facebook.com/v18.0/{META_PHONE_NUMBER_ID}/messages" 
     CATALOG_ID = "1008650128092617"

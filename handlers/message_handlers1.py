@@ -921,7 +921,7 @@ def handle_incoming_message(data):
                             discount = get_branch_discount(sender, branch, get_user_cart)
                             confirm_order(sender, branch, order_id, "COD", cart, discount, paid=False)
                         elif action == "pay now":
-                            link = generate_payment_link(sender, 1, order_id)
+                            link = generate_payment_link(sender, total, order_id)
                             if link:
                                 send_pay_online_template(sender, link)
                                 cart["payment_link"] = link

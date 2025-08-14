@@ -8,6 +8,7 @@ from handlers.message_handlers import handle_incoming_message
 from services.order_service import confirm_order, confirm_order_after_payment
 from services.whatsapp_service import send_text_message
 from config.credentials import META_VERIFY_TOKEN, RAZORPAY_KEY_SECRET
+from stateHandlers.redis_state import get_pending_order
 from utils import logger
 
 webhook_bp = Blueprint('webhook', __name__)
@@ -46,15 +47,27 @@ def payment_success():
 @webhook_bp.route("/razorpay-webhook-fruitcustard", methods=["POST"])
 def razorpay_webhook():
     print("Razorpay webhook received.")
+
+    # Verify signature to ensure the request is from Razorpay
+    payload = request.data
+    received_signature = request.headers.get("X-Razorpay-Signature", "")
+    expected_signature = hmac.new(
+        RAZORPAY_KEY_SECRET.encode(), payload, hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(received_signature, expected_signature):
+        logger.warning("[WEBHOOK] Invalid Razorpay signature")
+        return "Invalid signature", 400
+
     data = request.get_json()
     if data.get("event") == "payment_link.paid":
         payment_data = data.get("payload", {}).get("payment_link", {}).get("entity", {})
         whatsapp_number = payment_data.get("customer", {}).get("contact")
         order_id = payment_data.get("reference_id")
         if whatsapp_number and order_id:
-            # send_text_message(whatsapp_number, "✅ Your payment is confirmed! Your order is being processed.")
-            print("Razorpay webhook received.",whatsapp_number,order_id)
-            # Confirm the order
-            confirm_order_after_payment(whatsapp_number,order_id)
+            print("Razorpay webhook confirmed.", whatsapp_number, order_id)
+            # Process only if order hasn't been saved already
+            if not get_pending_order(order_id):
+                confirm_order_after_payment(whatsapp_number, order_id)
     return "OK", 200
 

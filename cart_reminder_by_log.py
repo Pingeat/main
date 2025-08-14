@@ -1,41 +1,45 @@
 import os
 import csv
 from datetime import datetime, timedelta
+from pathlib import Path
 from pytz import timezone
 import requests
 
 from utils.time_utils import get_current_ist
 
 # File paths
-BASE_DIR = "/home/ec2-user/whatsapp-meta-bot"
-USER_LOG_CSV = os.path.join(BASE_DIR, "user_activity_log.csv")
-REMINDED_USERS_CSV = os.path.join(BASE_DIR, "reminded_users.csv")
+# Use the directory of this script as the base to avoid hardcoded absolute paths
+BASE_DIR = Path(__file__).resolve().parent
+USER_LOG_CSV = BASE_DIR / "user_activity_log.csv"
+REMINDED_USERS_CSV = BASE_DIR / "reminded_users.csv"
 
 # Meta WhatsApp API config
 ACCESS_TOKEN = "EAAHjsQJx72sBO9ZByRXWONteoZBSA1ZAGgAj0TB1xrY95P5LhZAVZAw6Q931i11tx61MeF1aETJn253ZBPuvWEhsif2hQUEAZC5ZBZBB4Uj7Nhf9gterpvSCAamY5J2DSK8ZC6k1ZCXMiMYejJaz6ZCSQr6N80fBsrb2GZBKMKrEHG04gGYy0CUyXuXzD"
 WHATSAPP_API_URL = "https://graph.facebook.com/v18.0/625896810607603/messages"
 
 # Ensure files exist
-if not os.path.exists(USER_LOG_CSV):
+if not USER_LOG_CSV.exists():
     with open(USER_LOG_CSV, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["Customer Number", "Timestamp", "Step", "Info"])
 
-if not os.path.exists(REMINDED_USERS_CSV):
+if not REMINDED_USERS_CSV.exists():
     with open(REMINDED_USERS_CSV, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["Customer Number", "Date"])
 
 def today_ist_str():
-    return get_current_ist(timezone("Asia/Kolkata")).strftime("%Y-%m-%d")
+    """Return today's date in IST as YYYY-MM-DD."""
+    return get_current_ist().strftime("%Y-%m-%d")
 
 def get_reminded_today():
-    today = get_current_ist()
+    """Read the CSV to find users reminded today."""
+    today_str = get_current_ist().strftime("%Y-%m-%d")
     reminded = set()
     with open(REMINDED_USERS_CSV, newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            if row["Date"] == today:
+            if row["Date"] == today_str:
                 reminded.add(row["Customer Number"])
     return reminded
 

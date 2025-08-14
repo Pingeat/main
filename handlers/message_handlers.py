@@ -144,10 +144,19 @@ def handle_incoming_message(data):
 # Handle Greeting
 def handle_greeting(sender, current_state):
     from stateHandlers.redis_state import get_pending_orders
+
+    # If user already has items in cart, don't reset the flow
+    cart = get_user_cart(sender)
+    if cart and cart.get("summary"):
+        send_text_message(sender, "🛒 You still have items in your cart. Please continue with your order or type 'menu' to start over.")
+        return
+
     pending_orders = get_pending_orders()
 
-    active_orders = [o for o in pending_orders.values() if o["customer"] == sender and o["status"] == "Pending" or "Preparing"]
-    active_orders = None
+    active_orders = [
+        o for o in pending_orders.values()
+        if o.get("customer") == sender and o.get("status") in ["Pending", "Preparing"]
+    ]
 
     if active_orders:
         print("[DEBUG] Active Orders:", active_orders)

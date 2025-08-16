@@ -10,7 +10,7 @@ const {
   addPendingOrder,
   removePendingOrder,
 } = require('../stateHandlers/redisState');
-const { BRANCH_STATUS, BRANCH_BLOCKED_USERS } = require('../config/branchConfig');
+// const { BRANCH_STATUS, BRANCH_BLOCKED_USERS } = require('../config/branchConfig');
 const { updateOrderStatus } = require('../services/orderService');
 const { findClosestBranch } = require('../utils/locationUtils');
 const { isOperationalHours, storeOffHourUser } = require('../utils/timeUtils');
@@ -28,38 +28,38 @@ async function handleIncomingMessage(data) {
       const value = change.value || {};
       const messages = value.messages || [];
       if (!messages.length) continue;
+
       const msg = messages[0];
       const sender = msg.from.replace(/^\+/, '');
       const type = msg.type;
-        if (type === 'text') {
-          const text = msg.text?.body?.trim() || '';
+
+      if (type === 'text') {
+        const text = msg.text?.body?.trim() || '';
+
         if (text.toLowerCase().startsWith('message customer')) {
           await handleMarketingMessage(sender, text);
         } else if (isAdmin(sender)) {
           await handleAdminCommand(sender, text);
-      if (type === 'text') {
-        const text = msg.text?.body?.trim() || '';
-        if (isAdmin(sender)) {
-          await handleAdminCommand(sender, text);
-        const textBody = msg.text?.body?.trim() || '';
-        const match = textBody.match(/^(open|close)\s+(\w+)/i);
-        if (match && ADMIN_NUMBERS.includes(sender)) {
-          const action = match[1].toLowerCase();
-          const branch = match[2];
-          if (action === 'open') {
-            BRANCH_STATUS[branch] = true;
-            const blocked = BRANCH_BLOCKED_USERS[branch] || [];
-            for (const user of blocked) {
-              await sendTextMessage(user, `Branch ${branch} is now open.`);
-            }
-            BRANCH_BLOCKED_USERS[branch] = [];
-            await sendTextMessage(sender, `Branch ${branch} opened.`);
-          } else {
-            BRANCH_STATUS[branch] = false;
-            await sendTextMessage(sender, `Branch ${branch} closed.`);
-          }
         } else {
-          await handleGreeting(sender);
+          const match = text.match(/^(open|close)\s+(\w+)/i);
+          if (match && ADMIN_NUMBERS.includes(sender)) {
+            const action = match[1].toLowerCase();
+            const branch = match[2];
+            if (action === 'open') {
+              BRANCH_STATUS[branch] = true;
+              const blocked = BRANCH_BLOCKED_USERS[branch] || [];
+              for (const user of blocked) {
+                await sendTextMessage(user, `Branch ${branch} is now open.`);
+              }
+              BRANCH_BLOCKED_USERS[branch] = [];
+              await sendTextMessage(sender, `Branch ${branch} opened.`);
+            } else {
+              BRANCH_STATUS[branch] = false;
+              await sendTextMessage(sender, `Branch ${branch} closed.`);
+            }
+          } else {
+            await handleGreeting(sender);
+          }
         }
       } else if (type === 'location') {
         const { latitude, longitude } = msg.location;
@@ -73,6 +73,7 @@ async function handleIncomingMessage(data) {
     }
   }
 }
+
 
 function isAdmin(phone) {
   return ADMIN_NUMBERS.includes(phone);
@@ -247,6 +248,5 @@ module.exports = {
   handleGreeting,
   handleLocation,
   handleOrder,
-  handleInteractive,
+  handleInteractive
 };
-

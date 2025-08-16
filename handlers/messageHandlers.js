@@ -14,6 +14,7 @@ const {
 } = require('../config/settings');
 const { updateOrderStatus } = require('../services/orderService');
 const { findClosestBranch } = require('../utils/locationUtils');
+const { BRANCH_STATUS, BRANCH_BLOCKED_USERS } = require('../config/branchConfig');
 
 async function handleIncomingMessage(data) {
   for (const entry of data.entry || []) {
@@ -28,6 +29,23 @@ async function handleIncomingMessage(data) {
         const text = msg.text?.body?.trim() || '';
         if (isAdmin(sender)) {
           await handleAdminCommand(sender, text);
+        const textBody = msg.text?.body?.trim() || '';
+        const match = textBody.match(/^(open|close)\s+(\w+)/i);
+        if (match && ADMIN_NUMBERS.includes(sender)) {
+          const action = match[1].toLowerCase();
+          const branch = match[2];
+          if (action === 'open') {
+            BRANCH_STATUS[branch] = true;
+            const blocked = BRANCH_BLOCKED_USERS[branch] || [];
+            for (const user of blocked) {
+              await sendTextMessage(user, `Branch ${branch} is now open.`);
+            }
+            BRANCH_BLOCKED_USERS[branch] = [];
+            await sendTextMessage(sender, `Branch ${branch} opened.`);
+          } else {
+            BRANCH_STATUS[branch] = false;
+            await sendTextMessage(sender, `Branch ${branch} closed.`);
+          }
         } else {
           await handleGreeting(sender);
         }

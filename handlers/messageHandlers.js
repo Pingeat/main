@@ -1,5 +1,7 @@
-const { sendTextMessage } = require('../services/whatsappService');
-const { getUserState, setUserState } = require('../stateHandlers/redisState');
+const { sendTextMessage, sendTemplate } = require('../services/whatsappService');
+const { getUserState, setUserState, getPendingOrder, addPendingOrder, removePendingOrder } = require('../stateHandlers/redisState');
+const { ADMIN_NUMBERS } = require('../config/settings');
+const { updateOrderStatus } = require('../services/orderService');
 
 async function handleIncomingMessage(data) {
   for (const entry of data.entry || []) {
@@ -11,7 +13,12 @@ async function handleIncomingMessage(data) {
       const sender = msg.from.replace(/^\+/, '');
       const type = msg.type;
       if (type === 'text') {
-        await handleGreeting(sender);
+        const text = msg.text?.body || '';
+        if (isAdmin(sender)) {
+          await handleAdminCommand(sender, text);
+        } else {
+          await handleGreeting(sender);
+        }
       } else if (type === 'location') {
         const { latitude, longitude } = msg.location;
         await handleLocation(sender, latitude, longitude);
@@ -21,6 +28,52 @@ async function handleIncomingMessage(data) {
       } else if (type === 'interactive') {
         await handleInteractive(sender, msg.interactive);
       }
+    }
+  }
+}
+
+function isAdmin(phone) {
+  return ADMIN_NUMBERS.includes(phone);
+}
+
+async function handleAdminCommand(sender, text) {
+  const lower = text.toLowerCase();
+  const statusMatch = lower.match(/\b(ready|dispatched|ontheway|on the way|delivered)\b/);
+  if (!statusMatch) return;
+  const statusKey = statusMatch[1];
+  const orderId = text.replace(new RegExp(statusMatch[0], 'i'), '').trim().toUpperCase();
+  if (!orderId) return;
+
+  let statusMessage;
+  let statusValue;
+  switch (statusKey) {
+    case 'ready':
+      statusMessage = 'Your order is ready.';
+      statusValue = 'Ready';
+      break;
+    case 'dispatched':
+    case 'ontheway':
+    case 'on the way':
+      statusMessage = 'Your order is on the way.';
+      statusValue = 'On The Way';
+      break;
+    case 'delivered':
+      statusMessage = 'Your order has been delivered.';
+      statusValue = 'Delivered';
+      break;
+    default:
+      return;
+  }
+
+  await updateOrderStatus(orderId, statusValue);
+  const order = await getPendingOrder(orderId);
+  if (order) {
+    await sendTextMessage(order.customer, `📦 ${statusMessage}`);
+    order.status = statusMessage;
+    await addPendingOrder(orderId, order);
+    if (statusKey === 'delivered') {
+      setTimeout(() => sendTemplate(order.customer, 'feedback_2'), 5 * 60 * 1000);
+      await removePendingOrder(orderId);
     }
   }
 }

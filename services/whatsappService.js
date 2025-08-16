@@ -52,4 +52,41 @@ async function sendTemplate(to, name, components = []) {
   }
 }
 
-module.exports = { sendTextMessage, sendTemplate };
+async function sendKitchenBranchAlertTemplate(
+  phoneNumber,
+  orderType,
+  orderId,
+  customer,
+  orderTime,
+  itemSummary,
+  total,
+  branch,
+  address,
+  locationUrl
+) {
+  const components = [
+    {
+      type: 'body',
+      parameters: [
+        { type: 'text', text: orderType },
+        { type: 'text', text: orderId },
+        { type: 'text', text: customer },
+        { type: 'text', text: orderTime },
+        { type: 'text', text: itemSummary },
+        { type: 'text', text: String(total) },
+        { type: 'text', text: branch },
+        { type: 'text', text: address },
+        { type: 'text', text: locationUrl }
+      ]
+    }
+  ];
+
+  try {
+    await sendTemplate(phoneNumber, 'kitchen_branch_alert', components);
+    logger.info('Sent kitchen/branch alert', { phoneNumber, orderId });
+  } catch (err) {
+    logger.error('Failed to send kitchen/branch alert', { error: err.message });
+  }
+}
+
+module.exports = { sendTextMessage, sendTemplate, sendKitchenBranchAlertTemplate };

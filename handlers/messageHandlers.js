@@ -4,7 +4,7 @@ const {
   setUserState,
   getPendingOrder,
   addPendingOrder,
-  removePendingOrder
+  removePendingOrder,
 } = require('../stateHandlers/redisState');
 const {
   ADMIN_NUMBERS,
@@ -172,5 +172,6 @@ module.exports = {
   handleGreeting,
   handleLocation,
   handleOrder,
-  handleInteractive
+  handleInteractive,
 };
+

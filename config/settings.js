@@ -1,6 +1,7 @@
 module.exports = {
   ADMIN_NUMBERS: (process.env.ADMIN_NUMBERS || '').split(',').filter(Boolean),
   ORDERS_CSV: process.env.ORDERS_CSV || 'orders.csv',
+  FEEDBACK_CSV: process.env.FEEDBACK_CSV || 'feedback.csv',
   BRANCH_STATUS: {
     kondapur: true,
     madhapur: true,

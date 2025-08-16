@@ -5,6 +5,7 @@ const logger = require('./utils/logger');
 const { META_VERIFY_TOKEN, RAZORPAY_KEY_SECRET } = require('./config/credentials');
 const { handleIncomingMessage } = require('./handlers/messageHandlers');
 const { confirmOrder } = require('./services/orderService');
+const { saveFeedback } = require('./services/feedbackService');
 const { startJobs } = require('./scheduler/backgroundJobs');
 
 dotenv.config();
@@ -63,6 +64,20 @@ app.post('/razorpay-webhook-fruitcustard', express.raw({ type: 'application/json
     }
   }
   res.send('OK');
+});
+
+app.post('/feedback', (req, res) => {
+  const { from, feedback, rating, comment } = req.body || {};
+  try {
+    const value = feedback || rating || comment || '';
+    if (from && value) {
+      saveFeedback(from, value);
+    }
+    res.sendStatus(200);
+  } catch (err) {
+    logger.error('Failed to save feedback', { error: err.message });
+    res.sendStatus(500);
+  }
 });
 
 const PORT = process.env.PORT || 3000;

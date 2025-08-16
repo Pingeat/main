@@ -2,7 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const csv = require('fast-csv');
 const moment = require('moment-timezone');
-const { sendTextMessage, sendTemplate } = require('./whatsappService');
+const { sendTextMessage, sendTemplate, sendPayOnlineTemplate } = require('./whatsappService');
+const { generatePaymentLink } = require('./paymentService');
 const { getUserCart, setUserCart, deleteUserCart, addPendingOrder } = require('../stateHandlers/redisState');
 const { ORDERS_CSV } = require('../config/settings');
 
@@ -18,12 +19,19 @@ async function sendCartReminderOnce(phone) {
   if (!cart.summary || cart.reminder_sent) return;
   await sendTextMessage(phone, `🛒 Just a reminder! You still have items in your cart.\n${cart.summary}`);
   await sendTemplate(phone, 'delivery_takeaway');
+  const orderId = cart.order_id || `ORD-${Date.now()}`;
+  const finalTotal = cart.final_total || cart.total || 0;
+  const link = await generatePaymentLink(phone, finalTotal, orderId);
+  if (link) {
+    await sendPayOnlineTemplate(phone, link);
+  }
   cart.reminder_sent = true;
   await setUserCart(phone, cart);
 }
 
 async function confirmOrder(to, paymentMode, orderId, paid = false) {
   const cart = await getUserCart(to);
+  const finalTotal = cart.final_total || cart.total || 0;
   const orderData = {
     customer: to,
     order_id: orderId,
@@ -41,6 +49,12 @@ async function confirmOrder(to, paymentMode, orderId, paid = false) {
     'Paid': paid
   });
   await addPendingOrder(orderId, orderData);
+  if (!paid) {
+    const link = await generatePaymentLink(to, finalTotal, orderId);
+    if (link) {
+      await sendPayOnlineTemplate(to, link);
+    }
+  }
   await deleteUserCart(to);
   await sendTextMessage(to, `✅ Order confirmed. Your order ID is ${orderId}.`);
 }

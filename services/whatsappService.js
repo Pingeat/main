@@ -52,4 +52,19 @@ async function sendTemplate(to, name, components = []) {
   }
 }
 
-module.exports = { sendTextMessage, sendTemplate };
+async function sendPayOnlineTemplate(to, paymentLink) {
+  const token = paymentLink && paymentLink.startsWith('https://rzp.io/rzp/')
+    ? paymentLink.split('/').pop()
+    : paymentLink;
+  const components = [
+    {
+      type: 'button',
+      sub_type: 'url',
+      index: 0,
+      parameters: [{ type: 'text', text: token }]
+    }
+  ];
+  await sendTemplate(to, 'pays_online', components);
+}
+
+module.exports = { sendTextMessage, sendTemplate, sendPayOnlineTemplate };

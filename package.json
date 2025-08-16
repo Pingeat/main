@@ -6,6 +6,9 @@
   "scripts": {
     "test": "echo \"No tests\""
   },
+  "dependencies": {
+    "geolib": "^3.3.3"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

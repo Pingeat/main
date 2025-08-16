@@ -76,6 +76,27 @@ async function updateOrderStatus(orderId, status) {
   fs.writeFileSync(filePath, lines.join('\n'));
 }
 
+async function updateOrderStatus(orderId, status) {
+  const filePath = path.resolve(ORDERS_CSV || 'orders.csv');
+  if (!fs.existsSync(filePath)) return;
+  const lines = fs.readFileSync(filePath, 'utf8').split(/\r?\n/);
+  if (!lines.length) return;
+  const headers = lines[0].split(',');
+  const idIdx = headers.indexOf('Order ID');
+  const statusIdx = headers.indexOf('Status');
+  if (idIdx === -1 || statusIdx === -1) return;
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i]) continue;
+    const cols = lines[i].split(',');
+    if (cols[idIdx] === orderId) {
+      cols[statusIdx] = status;
+      lines[i] = cols.join(',');
+      break;
+    }
+  }
+  fs.writeFileSync(filePath, lines.join('\n'));
+}
+
 async function sendCartReminderOnce(phone) {
   try {
     const cart = await getUserCart(phone);

@@ -1,0 +1,4 @@
+const BRANCH_STATUS = {};
+const BRANCH_BLOCKED_USERS = {};
+
+module.exports = { BRANCH_STATUS, BRANCH_BLOCKED_USERS };

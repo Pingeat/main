@@ -2,16 +2,42 @@ const fs = require('fs');
 const path = require('path');
 const csv = require('fast-csv');
 const moment = require('moment-timezone');
-const { sendTextMessage, sendTemplate, sendPayOnlineTemplate } = require('./whatsappService');
+const {
+  sendTextMessage,
+  sendTemplate,
+  sendPayOnlineTemplate,
+  sendKitchenBranchAlertTemplate
+} = require('./whatsappService');
 const { generatePaymentLink } = require('./paymentService');
 const { getUserCart, setUserCart, deleteUserCart, addPendingOrder } = require('../stateHandlers/redisState');
-const { ORDERS_CSV } = require('../config/settings');
+const { ORDERS_CSV, ADMIN_NUMBERS } = require('../config/settings');
 
 function logOrder(order) {
   const filePath = path.resolve(ORDERS_CSV || 'orders.csv');
   const exists = fs.existsSync(filePath);
   const ws = fs.createWriteStream(filePath, { flags: 'a' });
   csv.write([order], { headers: !exists }).pipe(ws);
+}
+
+async function updateOrderStatus(orderId, status) {
+  const filePath = path.resolve(ORDERS_CSV || 'orders.csv');
+  if (!fs.existsSync(filePath)) return;
+  const lines = fs.readFileSync(filePath, 'utf8').split(/\r?\n/);
+  if (!lines.length) return;
+  const headers = lines[0].split(',');
+  const idIdx = headers.indexOf('Order ID');
+  const statusIdx = headers.indexOf('Status');
+  if (idIdx === -1 || statusIdx === -1) return;
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i]) continue;
+    const cols = lines[i].split(',');
+    if (cols[idIdx] === orderId) {
+      cols[statusIdx] = status;
+      lines[i] = cols.join(',');
+      break;
+    }
+  }
+  fs.writeFileSync(filePath, lines.join('\n'));
 }
 
 async function sendCartReminderOnce(phone) {
@@ -46,7 +72,8 @@ async function confirmOrder(to, paymentMode, orderId, paid = false) {
     'Customer Number': to,
     'Order Time': moment().tz('Asia/Kolkata').format('YYYY-MM-DD HH:mm:ss'),
     'Payment Mode': paymentMode,
-    'Paid': paid
+    'Paid': paid,
+    'Status': 'Pending'
   });
   await addPendingOrder(orderId, orderData);
   if (!paid) {
@@ -57,6 +84,21 @@ async function confirmOrder(to, paymentMode, orderId, paid = false) {
   }
   await deleteUserCart(to);
   await sendTextMessage(to, `✅ Order confirmed. Your order ID is ${orderId}.`);
+  const orderTime = moment().tz('Asia/Kolkata').format('YYYY-MM-DD HH:mm:ss');
+  for (const admin of ADMIN_NUMBERS) {
+    await sendKitchenBranchAlertTemplate(
+      admin,
+      paymentMode,
+      orderId,
+      to,
+      orderTime,
+      cart.summary || '',
+      cart.total || 0,
+      cart.branch || 'N/A',
+      cart.address || 'N/A',
+      cart.location_url || 'N/A'
+    );
+  }
 }
 
-module.exports = { logOrder, sendCartReminderOnce, confirmOrder };
+module.exports = { logOrder, sendCartReminderOnce, confirmOrder, updateOrderStatus };

@@ -1,4 +1,8 @@
+const fs = require('fs');
+const path = require('path');
+const csv = require('fast-csv');
 const { sendTextMessage, sendTemplate } = require('../services/whatsappService');
+const { sendMarketingPromo, sendCatalogSet } = require('../services/marketingService');
 const {
   getUserState,
   setUserState,
@@ -14,9 +18,9 @@ const {
   ADMIN_NUMBERS,
   BRANCH_STATUS,
   BRANCH_DISCOUNTS,
-  BRANCH_BLOCKED_USERS
+  BRANCH_BLOCKED_USERS,
+  USER_LOG_CSV
 } = require('../config/settings');
-
 
 async function handleIncomingMessage(data) {
   for (const entry of data.entry || []) {
@@ -27,6 +31,12 @@ async function handleIncomingMessage(data) {
       const msg = messages[0];
       const sender = msg.from.replace(/^\+/, '');
       const type = msg.type;
+        if (type === 'text') {
+          const text = msg.text?.body?.trim() || '';
+        if (text.toLowerCase().startsWith('message customer')) {
+          await handleMarketingMessage(sender, text);
+        } else if (isAdmin(sender)) {
+          await handleAdminCommand(sender, text);
       if (type === 'text') {
         const text = msg.text?.body?.trim() || '';
         if (isAdmin(sender)) {
@@ -175,6 +185,61 @@ async function handleOrder(to, items) {
 
 async function handleInteractive(to, interactive) {
   await sendTextMessage(to, '🔘 Option selected.');
+}
+
+async function handleMarketingMessage(sender, text) {
+  const match = text.match(/to=(.*?)\s+message_text="(.*?)"(?:\s+item_set=(\S+))?/);
+  if (!match) {
+    await sendTextMessage(sender, '❗ Invalid format. Use:\nmessage customer to=... message_text="your message here"');
+    return;
+  }
+
+  const toValue = match[1].trim();
+  const messageText = match[2].trim();
+  const itemSet = (match[3] || '').replace(/"/g, '').trim();
+
+  let recipients = [];
+  if (['log', 'all'].includes(toValue)) {
+    recipients = await readNumbersFromLog();
+    if (!recipients.length) {
+      await sendTextMessage(sender, '❌ No active customers found in log');
+      return;
+    }
+    await sendTextMessage(sender, `📢 Sending promo to ${recipients.length} customers from log...`);
+  } else {
+    recipients = toValue.split(',').map(n => n.trim()).filter(Boolean);
+    if (!recipients.length) {
+      await sendTextMessage(sender, '❌ No valid phone numbers provided');
+      return;
+    }
+  }
+
+  let successful = 0;
+  for (const num of recipients) {
+    await sendMarketingPromo(num, messageText);
+    if (itemSet && itemSet.toLowerCase() !== 'none') {
+      await sendCatalogSet(num, itemSet);
+    }
+    successful += 1;
+  }
+
+  await sendTextMessage(sender, `✅ Sent marketing message to ${successful}/${recipients.length} customers`);
+}
+
+function readNumbersFromLog() {
+  return new Promise((resolve) => {
+    const numbers = new Set();
+    const filePath = path.resolve(USER_LOG_CSV || 'user_activity_log.csv');
+    if (!fs.existsSync(filePath)) return resolve([]);
+    fs.createReadStream(filePath)
+      .pipe(csv.parse({ headers: true }))
+      .on('data', row => {
+        const num = (row['Customer Number'] || '').replace(/[^0-9]/g, '');
+        if (num.length >= 10) numbers.add(num);
+      })
+      .on('end', () => resolve(Array.from(numbers)))
+      .on('error', () => resolve([]));
+  });
 }
 
 module.exports = {

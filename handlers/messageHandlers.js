@@ -6,15 +6,17 @@ const {
   addPendingOrder,
   removePendingOrder,
 } = require('../stateHandlers/redisState');
+const { BRANCH_STATUS, BRANCH_BLOCKED_USERS } = require('../config/branchConfig');
+const { updateOrderStatus } = require('../services/orderService');
+const { findClosestBranch } = require('../utils/locationUtils');
+const { isOperationalHours, storeOffHourUser } = require('../utils/timeUtils');
 const {
   ADMIN_NUMBERS,
   BRANCH_STATUS,
   BRANCH_DISCOUNTS,
   BRANCH_BLOCKED_USERS
 } = require('../config/settings');
-const { updateOrderStatus } = require('../services/orderService');
-const { findClosestBranch } = require('../utils/locationUtils');
-const { BRANCH_STATUS, BRANCH_BLOCKED_USERS } = require('../config/branchConfig');
+
 
 async function handleIncomingMessage(data) {
   for (const entry of data.entry || []) {
@@ -160,6 +162,14 @@ async function handleLocation(to, latitude, longitude) {
 }
 
 async function handleOrder(to, items) {
+  if (!isOperationalHours()) {
+    await sendTextMessage(
+      to,
+      "⏰ We are currently closed. We'll notify you when we're open."
+    );
+    await storeOffHourUser(to);
+    return;
+  }
   await sendTextMessage(to, '🛒 Order received.');
 }
 

@@ -2,6 +2,9 @@ module.exports = {
   ADMIN_NUMBERS: (process.env.ADMIN_NUMBERS || '').split(',').filter(Boolean),
   ORDERS_CSV: process.env.ORDERS_CSV || 'orders.csv',
   FEEDBACK_CSV: process.env.FEEDBACK_CSV || 'feedback.csv',
+  OPEN_TIME: parseInt(process.env.OPEN_TIME || '9', 10),
+  CLOSE_TIME: parseInt(process.env.CLOSE_TIME || '23', 10),
+  OFF_HOUR_USERS_CSV: process.env.OFF_HOUR_USERS_CSV || 'offhour_users.csv',
   BRANCH_STATUS: {
     kondapur: true,
     madhapur: true,
